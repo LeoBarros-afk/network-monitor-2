@@ -6,7 +6,8 @@ from influxdb import InfluxDBClient
 
 app = Flask(__name__)
 
-# --- Configurações do InfluxDB e Telegram (das variáveis de ambiente) ---
+# --- Configurações do InfluxDB e Telegram (lidas do ambiente) ---
+# O ideal é que estes valores sejam lidos a partir de um arquivo .env pelo docker-compose
 INFLUXDB_HOST = os.environ.get('INFLUXDB_HOST')
 INFLUXDB_PORT = int(os.environ.get('INFLUXDB_PORT'))
 INFLUXDB_USER = os.environ.get('INFLUXDB_USER')
@@ -24,6 +25,7 @@ except Exception as e:
 
 # --- Funções de Alerta ---
 def send_telegram_alert(message):
+    """Envia uma mensagem de alerta para o grupo configurado no Telegram."""
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         app.logger.warning("Token ou Chat ID do Telegram não configurados. Alerta não enviado.")
         return
@@ -31,25 +33,37 @@ def send_telegram_alert(message):
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
     try:
         response = requests.post(url, json=payload)
-        response.raise_for_status()
+        response.raise_for_status() # Isso irá gerar um erro para respostas HTTP 4xx/5xx
         app.logger.info("Alerta enviado ao Telegram.")
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Erro ao enviar alerta para o Telegram: {e}")
 
-def check_for_alerts(employee_id, ping_host, packet_loss, latency):
+def check_for_alerts(employee_id, ping_host, packet_loss, latency, jitter):
+    """Verifica se os limiares de alerta foram atingidos e envia a notificação."""
     # --- DEFINA SEUS LIMITES DE ALERTA AQUI ---
-    PACKET_LOSS_THRESHOLD = 2.0  # Alerta se a perda for maior que 5%
-    LATENCY_THRESHOLD = 100.0    # Alerta se a latência for maior que 150ms
+    PACKET_LOSS_THRESHOLD = 2.0  # Alerta se a perda for maior que 2%
+    LATENCY_THRESHOLD = 100.0    # Alerta se a latência for maior que 100ms
 
-    alerts = []
+    alert_reasons = []
+    # Verifica se alguma condição principal de alerta foi atingida
     if packet_loss > PACKET_LOSS_THRESHOLD:
-        alerts.append(f"Perda de Pacotes: *{packet_loss:.2f}%*")
+        alert_reasons.append(f"Perda de Pacotes: *{packet_loss:.2f}%*")
     if latency > LATENCY_THRESHOLD:
-        alerts.append(f"Latência Alta: *{latency:.2f}ms*")
+        alert_reasons.append(f"Latência Alta: *{latency:.2f}ms*")
     
-    if alerts:
+    # Se houver um motivo para alertar...
+    if alert_reasons:
         header = f"🚨 *Alerta de Rede para {employee_id}* (Alvo: {ping_host})\n"
-        message = header + "\n".join(alerts)
+        
+        # Constrói a mensagem principal com os motivos do alerta
+        main_message = "\n".join(alert_reasons)
+        
+        # Prepara a informação do Jitter para ser adicionada como contexto
+        jitter_info = f"Jitter Atual: *{jitter:.2f}ms*"
+
+        # Junta o cabeçalho, a mensagem principal e a informação de jitter
+        message = f"{header}{main_message}\n{jitter_info}"
+        
         send_telegram_alert(message)
 
 # --- Rotas da API ---
@@ -62,16 +76,18 @@ def receive_data():
         for line in csv_data.split('\n'):
             if not line: continue
             
-            # Formato esperado: employee_id,ping_host,packet_loss_percent,avg_latency_ms,jitter_ms,download_mbps,upload_mbps
-            employee_id, ping_host, packet_loss, latency, jitter, download, upload = line.split(',')
+            # Formato esperado: employee_id,ping_host,packet_loss_percent,avg_latency_ms,jitter_ms
+            employee_id, ping_host, packet_loss, latency, jitter = line.split(',')
             
+            # Converte os valores para float para processamento
             packet_loss_f = float(packet_loss)
             latency_f = float(latency)
+            jitter_f = float(jitter)
             
-            # Checa por alertas
-            check_for_alerts(employee_id, ping_host, packet_loss_f, latency_f)
+            # Chama a função que verifica e envia os alertas
+            check_for_alerts(employee_id, ping_host, packet_loss_f, latency_f, jitter_f)
             
-            # Monta o ponto para o InfluxDB
+            # Monta o ponto de dados para o InfluxDB
             points.append({
                 "measurement": "network_stats",
                 "tags": {"employee_id": employee_id, "ping_host": ping_host},
@@ -79,9 +95,7 @@ def receive_data():
                 "fields": {
                     "packet_loss_percent": packet_loss_f,
                     "avg_latency_ms": latency_f,
-                    "jitter_ms": float(jitter) if jitter != 'N/A' else 0.0,
-                    "download_mbps": float(download) if download != 'N/A' else 0.0,
-                    "upload_mbps": float(upload) if upload != 'N/A' else 0.0,
+                    "jitter_ms": jitter_f,
                 }
             })
 
@@ -96,7 +110,9 @@ def receive_data():
 
 @app.route('/health', methods=['GET'])
 def health_check():
+    """Endpoint simples para verificar se a API está no ar."""
     return "API is running", 200
 
 if __name__ == '__main__':
+    # Inicia o servidor Flask, escutando em todas as interfaces de rede na porta 5000
     app.run(host='0.0.0.0', port=5000)
