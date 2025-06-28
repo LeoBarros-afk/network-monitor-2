@@ -1,0 +1,2 @@
+# Lista de bibliotecas Python. Por enquanto, só o Flask.
+Flask==2.1.2

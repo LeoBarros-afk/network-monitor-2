@@ -1,7 +1,7 @@
-# docker-compose.yml (Versão Final - Segura para Produção)
+# docker-compose.yml (Versão com Sistema de Monitoramento + Sistema de Ponto)
 
 services:
-  # Serviço do Banco de Dados para armazenar as métricas
+  # --- SERVIÇOS DO SISTEMA DE MONITORAMENTO (JÁ EXISTENTES) ---
   influxdb:
     image: influxdb:1.8
     container_name: influxdb
@@ -15,7 +15,6 @@ services:
       - INFLUXDB_ADMIN_PASSWORD=${INFLUXDB_PASS}
     restart: unless-stopped
 
-  # Serviço do Painel de Visualização (Dashboard)
   grafana:
     image: grafana/grafana-enterprise:latest
     container_name: grafana
@@ -30,10 +29,9 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS}
     restart: unless-stopped
 
-  # Serviço da nossa API que recebe os dados e envia alertas
-  api:
-    build: ./api
-    container_name: api
+  network-api: # Renomeei o serviço 'api' para 'network-api' para ficar mais claro
+    build: ./api # Esta é a API do sistema de monitoramento
+    container_name: network-api
     ports:
       - "5000:5000"
     depends_on:
@@ -48,7 +46,51 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     restart: unless-stopped
 
+  # --- NOVOS SERVIÇOS PARA O SISTEMA DE PONTO ---
+
+  # 1. O Banco de Dados PostgreSQL
+  postgres-db:
+    image: postgres:13-alpine # Usamos uma imagem oficial e leve do PostgreSQL
+    container_name: postgres-db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data # Volume para guardar os dados do ponto de forma permanente
+    environment:
+      # Estas variáveis são usadas pelo PostgreSQL na primeira inicialização
+      # para criar o banco de dados e o usuário padrão.
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432" # Expõe a porta padrão do PostgreSQL, útil para debug
+    restart: unless-stopped
+
+  # 2. A nova API para o Sistema de Ponto
+  ponto-api:
+    build: ./ponto-api # Aponta para a nova pasta que vamos criar para esta API
+    container_name: ponto-api
+    volumes:
+      - ./ponto-api:/app # Mapeia nosso código para dentro do contêiner, facilitando o desenvolvimento
+    depends_on:
+      - postgres-db # Garante que o banco de dados inicie antes da API
+    environment:
+      # Variáveis para que nossa API Python possa se conectar ao banco de dados
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@postgres-db:5432/${POSTGRES_DB}
+    restart: unless-stopped
+    # Não precisamos expor portas aqui, pois o frontend vai se comunicar com ela pela rede interna do Docker
+
+  # 3. O servidor Web para o Frontend React
+  ponto-frontend:
+    build: ./ponto-frontend # Aponta para a pasta do nosso servidor Nginx
+    container_name: ponto-frontend
+    ports:
+      - "80:80" # Expõe a porta 80, a porta padrão da web, para o mundo exterior
+    depends_on:
+      - ponto-api # Depende da API para poder redirecionar as chamadas
+    restart: unless-stopped
+
+
 # Define os volumes para garantir que os dados sejam persistentes
 volumes:
   influxdb_data:
   grafana_data:
+  postgres_data: # Adicionamos o volume do PostgreSQL

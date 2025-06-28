@@ -1,0 +1,10 @@
+# Instruções para construir a imagem do nosso servidor web Nginx.
+
+# Usamos a imagem oficial e leve do Nginx.
+FROM nginx:1.21-alpine
+
+# Remove a configuração padrão do Nginx.
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copia nosso arquivo de configuração personalizado para o lugar certo.
+COPY nginx.conf /etc/nginx/conf.d

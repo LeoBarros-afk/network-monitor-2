@@ -1,3 +1,6 @@
 .env
-monitor-network.ps1
-userid.cfg
+./misc/monitor-de-rede/monitor-network.ps1
+./misc/monitor-de-rede/userid.cfg
+./misc/monitor-de-rede/icone.ico
+./misc/monitor-de-rede/MonitorDeRede.exe
+./misc/monitor-de-rede/MonitorDeRedeV2.2.exe
