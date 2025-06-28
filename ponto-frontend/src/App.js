@@ -1,124 +1,156 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
+import { FaCheckCircle } from 'react-icons/fa';
 import './App.css';
 
+// Configuração do Axios para enviar o token em todas as requisições
+const api = axios.create();
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('user_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 function App() {
-  // Estados para o formulário de login
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  
-  // Estados para controlar a aplicação
-  const [message, setMessage] = useState('');
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('user_token'));
   const [userData, setUserData] = useState(null);
+  const [registrosDoDia, setRegistrosDoDia] = useState([]);
 
-  // Efeito que roda quando o componente carrega
+  // Efeito que busca os dados do usuário e seus registros quando o token muda
   useEffect(() => {
-    // Tenta carregar o token do armazenamento local do navegador
-    const storedToken = localStorage.getItem('user_token');
-    if (storedToken) {
-      setToken(storedToken);
-    }
-  }, []); // O array vazio significa que este efeito roda apenas uma vez
+    const fetchUserData = async () => {
+      if (token) {
+        try {
+          const response = await api.get('/api/me/hoje');
+          setUserData(response.data);
+          setRegistrosDoDia(response.data.registros_hoje);
+        } catch (error) {
+          console.error("Sessão expirada ou inválida.", error);
+          handleLogout();
+        }
+      }
+    };
+    fetchUserData();
+  }, [token]);
 
-  // Função para lidar com o login
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setMessage(''); // Limpa mensagens antigas
-    try {
-      const response = await axios.post('/api/login', { username, password });
-      const receivedToken = response.data.access_token;
-      setToken(receivedToken);
-      // Salva o token no armazenamento local para "lembrar" do login
-      localStorage.setItem('user_token', receivedToken);
-      setMessage('Login realizado com sucesso!');
-    } catch (error) {
-      setMessage(error.response?.data?.msg || 'Erro ao fazer login');
-    }
-  };
-
-  // Função para lidar com o logout
   const handleLogout = () => {
     setToken(null);
-    setUsername('');
-    setPassword('');
-    setMessage('');
-    localStorage.removeItem('user_token'); // Remove o token
+    setUserData(null);
+    localStorage.removeItem('user_token');
   };
 
-  // Função para registrar o ponto
   const handleRegisterPoint = async (tipo) => {
-    setMessage('');
     try {
-      // Faz a chamada para a API, enviando o token de autorização
-      const response = await axios.post(
-        '/api/ponto/registrar', 
-        { tipo }, // Corpo da requisição com o tipo de registro
-        { headers: { Authorization: `Bearer ${token}` } } // Cabeçalho de autorização
-      );
-      setMessage(response.data.msg); // Mostra a mensagem de sucesso da API
+      const response = await api.post('/api/ponto/registrar', { tipo });
+      // Atualiza a lista de registros do dia para desabilitar o botão
+      setRegistrosDoDia([...registrosDoDia, tipo]);
+      // Mostra um alerta de sucesso
+      Swal.fire({
+        title: 'Sucesso!',
+        text: response.data.msg,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
     } catch (error) {
-      setMessage(error.response?.data?.msg || `Erro ao registrar ${tipo}`);
-      // Se o token expirar (erro 401), faz o logout
+      // Mostra um alerta de erro
+      Swal.fire({
+        title: 'Erro!',
+        text: error.response?.data?.msg || `Erro ao registrar ${tipo}`,
+        icon: 'error',
+      });
       if (error.response?.status === 401) {
         handleLogout();
       }
     }
   };
 
-  // Renderização condicional: mostra o formulário de login OU o painel do funcionário
   if (!token) {
-    // TELA DE LOGIN
-    return (
-      <div className="App">
-        <div className="login-container">
-          <h1>Sistema de Ponto</h1>
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label>Usuário:</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Senha:</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <button type="submit">Entrar</button>
-          </form>
-          {message && <p className="message">{message}</p>}
-        </div>
-      </div>
-    );
+    return <LoginScreen setToken={setToken} />;
   }
 
-  // PAINEL DO FUNCIONÁRIO (mostrado após o login)
+  return <DashboardScreen user={userData} registros={registrosDoDia} onLogout={handleLogout} onRegister={handleRegisterPoint} />;
+}
+
+// --- Componente da Tela de Login ---
+const LoginScreen = ({ setToken }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const response = await api.post('/api/login', { username, password });
+      const receivedToken = response.data.access_token;
+      localStorage.setItem('user_token', receivedToken);
+      setToken(receivedToken);
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Erro ao fazer login');
+    }
+  };
+
+  return (
+    <div className="App">
+      <div className="login-container">
+        <h1>Sistema de Ponto</h1>
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label>Usuário:</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Senha:</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <button type="submit">Entrar</button>
+        </form>
+        {error && <p className="message">{error}</p>}
+      </div>
+    </div>
+  );
+};
+
+// --- Componente do Painel Principal ---
+const DashboardScreen = ({ user, registros, onLogout, onRegister }) => {
+  const BOTAO_PONTO = [
+    { tipo: 'entrada', texto: 'Registrar Entrada', classe: 'entrada' },
+    { tipo: 'saida_almoco', texto: 'Sair para Almoço', classe: 'almoco' },
+    { tipo: 'volta_almoco', texto: 'Voltar do Almoço', classe: 'almoco' },
+    { tipo: 'saida', texto: 'Encerrar Expediente', classe: 'saida' },
+  ];
+
   return (
     <div className="App">
       <div className="dashboard-container">
         <header className="dashboard-header">
-          <h2>Painel do Funcionário</h2>
-          <button onClick={handleLogout} className="logout-button">Sair</button>
+          <h2>Bem-vindo(a), {user?.nome_completo || '...'}!</h2>
+          <button onClick={onLogout} className="logout-button">Sair</button>
         </header>
         <div className="actions-container">
-          <button onClick={() => handleRegisterPoint('entrada')} className="action-button entrada">Registrar Entrada</button>
-          <button onClick={() => handleRegisterPoint('saida_almoco')} className="action-button almoco">Sair para Almoço</button>
-          <button onClick={() => handleRegisterPoint('volta_almoco')} className="action-button almoco">Voltar do Almoço</button>
-          <button onClick={() => handleRegisterPoint('saida')} className="action-button saida">Encerrar Expediente</button>
+          {BOTAO_PONTO.map((btn) => (
+            <button
+              key={btn.tipo}
+              onClick={() => onRegister(btn.tipo)}
+              className={`action-button ${btn.classe}`}
+              disabled={registros.includes(btn.tipo)}
+            >
+              {registros.includes(btn.tipo) ? <FaCheckCircle size={24} /> : btn.texto}
+            </button>
+          ))}
         </div>
-        {message && <p className="message dashboard-message">{message}</p>}
         {/* Futuramente, aqui entrará a tabela com os registros do dia */}
       </div>
     </div>
   );
-}
+};
 
 export default App;

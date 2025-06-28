@@ -6,16 +6,15 @@ from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity, get_jwt
-from datetime import datetime
+from datetime import datetime, date
 from functools import wraps
 from sqlalchemy import extract
 
-# As extensões são inicializadas aqui
+# (Inicialização das extensões e decorador de admin permanecem os mesmos)
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 jwt = JWTManager()
 
-# --- DECORADOR DE VERIFICAÇÃO DE ADMIN ---
 def admin_required():
     def wrapper(fn):
         @wraps(fn)
@@ -29,7 +28,7 @@ def admin_required():
         return decorator
     return wrapper
 
-# --- MODELOS DO BANCO DE DADOS ---
+# (Modelos do banco de dados permanecem os mesmos)
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -45,19 +44,17 @@ class RegistroPonto(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     tipo_registro = db.Column(db.String(20), nullable=False)
     justificativa = db.Column(db.Text, nullable=True)
-    # Adicionamos uma relação para facilitar a busca do nome do usuário
     usuario = db.relationship('Usuario', backref='registros')
 
 # --- FUNÇÃO "FÁBRICA" QUE CRIA A APLICAÇÃO ---
 def create_app():
     app = Flask(__name__)
 
-    # Carrega as configurações
+    # (Configurações permanecem as mesmas)
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 
-    # Vincula as extensões à aplicação
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
@@ -70,7 +67,7 @@ def create_app():
         password = request.json.get('password', None)
         user = Usuario.query.filter_by(username=username).first()
         if user and bcrypt.check_password_hash(user.password_hash, password):
-            additional_claims = {"role": user.role}
+            additional_claims = {"role": user.role, "nome_completo": user.nome_completo}
             access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
             return jsonify(access_token=access_token)
         return jsonify({"msg": "Usuário ou senha inválidos"}), 401
@@ -89,11 +86,37 @@ def create_app():
         db.session.commit()
         return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
     
-    # --- ROTAS DE ADMINISTRAÇÃO ---
+    # --- NOVA ROTA PARA BUSCAR DADOS DO DIA E DO USUÁRIO ---
+    @app.route('/api/me/hoje', methods=['GET'])
+    @jwt_required()
+    def get_user_and_today_records():
+        current_user_id = get_jwt_identity()
+        user = Usuario.query.get(int(current_user_id))
+        
+        # Busca os registros de hoje
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        registros_hoje = RegistroPonto.query.filter(
+            RegistroPonto.usuario_id == int(current_user_id),
+            RegistroPonto.timestamp >= today_start
+        ).all()
+        
+        tipos_registrados = [r.tipo_registro for r in registros_hoje]
+        
+        user_data = {
+            "id": user.id,
+            "nome_completo": user.nome_completo,
+            "username": user.username,
+            "role": user.role,
+            "registros_hoje": tipos_registrados
+        }
+        return jsonify(user_data)
+
+
+    # (Rotas de Admin permanecem as mesmas)
     @app.route('/api/admin/usuarios', methods=['GET'])
     @admin_required()
     def listar_usuarios():
-        # (código de listar usuários permanece o mesmo)
+        # ...
         usuarios = Usuario.query.all()
         lista_usuarios = [{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios]
         return jsonify(lista_usuarios)
@@ -101,15 +124,15 @@ def create_app():
     @app.route('/api/admin/registros/<int:usuario_id>', methods=['GET'])
     @admin_required()
     def listar_registros_usuario(usuario_id):
-        # (código de listar registros permanece o mesmo)
+        # ...
         registros = RegistroPonto.query.filter_by(usuario_id=usuario_id).order_by(RegistroPonto.timestamp.desc()).all()
         lista_registros = [{"id": r.id, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro, "justificativa": r.justificativa} for r in registros]
         return jsonify(lista_registros)
-    
+
     @app.route('/api/admin/registros/<int:registro_id>', methods=['PUT'])
     @admin_required()
     def editar_registro(registro_id):
-        # (código de editar registro permanece o mesmo)
+        # ...
         registro = RegistroPonto.query.get_or_404(registro_id)
         dados = request.json
         if 'timestamp' in dados:
@@ -127,24 +150,22 @@ def create_app():
     @app.route('/api/admin/registros/<int:registro_id>', methods=['DELETE'])
     @admin_required()
     def deletar_registro(registro_id):
-        # (código de deletar registro permanece o mesmo)
+        # ...
         registro = RegistroPonto.query.get_or_404(registro_id)
         db.session.delete(registro)
         db.session.commit()
         return jsonify({"msg": "Registro deletado com sucesso!"})
 
-    # --- NOVA ROTA PARA GERAR O RELATÓRIO ---
     @app.route('/api/admin/relatorio', methods=['GET'])
     @admin_required()
     def gerar_relatorio():
-        # Pega os parâmetros 'ano' e 'mes' da URL (ex: /api/admin/relatorio?ano=2025&mes=6)
+        # ...
         ano = request.args.get('ano', type=int)
         mes = request.args.get('mes', type=int)
 
         if not ano or not mes:
             return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
 
-        # Busca todos os registros do mês e ano especificados
         registros = RegistroPonto.query.join(Usuario).filter(
             extract('year', RegistroPonto.timestamp) == ano,
             extract('month', RegistroPonto.timestamp) == mes
@@ -153,7 +174,6 @@ def create_app():
         if not registros:
             return jsonify({"msg": "Nenhum registro encontrado para este período."}), 404
         
-        # Prepara os dados para o pandas
         dados_para_excel = []
         for r in registros:
             dados_para_excel.append({
@@ -165,17 +185,14 @@ def create_app():
                 'Justificativa': r.justificativa
             })
         
-        # Cria um DataFrame do pandas
         df = pd.DataFrame(dados_para_excel)
         
-        # Cria um arquivo Excel em memória
         output = io.BytesIO()
         writer = pd.ExcelWriter(output, engine='openpyxl')
         df.to_excel(writer, index=False, sheet_name='Registros de Ponto')
-        writer.save()
+        writer.close()
         output.seek(0)
         
-        # Envia o arquivo para o usuário fazer o download
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -185,7 +202,6 @@ def create_app():
 
     return app
 
-# A execução principal agora cria a aplicação usando a nossa "fábrica"
 if __name__ == '__main__':
     app = create_app()
     app.run(host='0.0.0.0', port=5001)
