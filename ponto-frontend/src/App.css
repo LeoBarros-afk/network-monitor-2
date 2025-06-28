@@ -1,0 +1,41 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+form div {
+  margin-bottom: 1rem;
+}
+
+label {
+  margin-right: 1rem;
+}
+
+input {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  background-color: #61dafb;
+  border: none;
+  border-radius: 5px;
+}
+
+.message {
+  margin-top: 1rem;
+  color: #ff6b6b;
+}

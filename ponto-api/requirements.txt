@@ -7,3 +7,4 @@ Flask-Bcrypt==1.0.1
 Flask-JWT-Extended==4.4.4
 pandas==1.4.2
 openpyxl==3.0.9
+numpy==1.22.4
