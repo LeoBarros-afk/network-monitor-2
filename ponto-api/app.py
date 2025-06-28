@@ -1,11 +1,14 @@
 # Arquivo: ponto-api/app.py
 import os
-from flask import Flask, request, jsonify
+import io
+import pandas as pd
+from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity, get_jwt
 from datetime import datetime
 from functools import wraps
+from sqlalchemy import extract
 
 # As extensões são inicializadas aqui
 db = SQLAlchemy()
@@ -42,6 +45,8 @@ class RegistroPonto(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     tipo_registro = db.Column(db.String(20), nullable=False)
     justificativa = db.Column(db.Text, nullable=True)
+    # Adicionamos uma relação para facilitar a busca do nome do usuário
+    usuario = db.relationship('Usuario', backref='registros')
 
 # --- FUNÇÃO "FÁBRICA" QUE CRIA A APLICAÇÃO ---
 def create_app():
@@ -60,6 +65,7 @@ def create_app():
     # --- ROTAS DA API ---
     @app.route('/api/login', methods=['POST'])
     def login():
+        # (código do login permanece o mesmo)
         username = request.json.get('username', None)
         password = request.json.get('password', None)
         user = Usuario.query.filter_by(username=username).first()
@@ -72,6 +78,7 @@ def create_app():
     @app.route('/api/ponto/registrar', methods=['POST'])
     @jwt_required()
     def registrar_ponto():
+        # (código do registro de ponto permanece o mesmo)
         tipo = request.json.get('tipo', None)
         tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
         if not tipo or tipo not in tipos_validos:
@@ -83,10 +90,10 @@ def create_app():
         return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
     
     # --- ROTAS DE ADMINISTRAÇÃO ---
-
     @app.route('/api/admin/usuarios', methods=['GET'])
     @admin_required()
     def listar_usuarios():
+        # (código de listar usuários permanece o mesmo)
         usuarios = Usuario.query.all()
         lista_usuarios = [{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios]
         return jsonify(lista_usuarios)
@@ -94,44 +101,87 @@ def create_app():
     @app.route('/api/admin/registros/<int:usuario_id>', methods=['GET'])
     @admin_required()
     def listar_registros_usuario(usuario_id):
+        # (código de listar registros permanece o mesmo)
         registros = RegistroPonto.query.filter_by(usuario_id=usuario_id).order_by(RegistroPonto.timestamp.desc()).all()
         lista_registros = [{"id": r.id, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro, "justificativa": r.justificativa} for r in registros]
         return jsonify(lista_registros)
-
-    # --- NOVA ROTA PARA EDITAR UM REGISTRO ---
+    
     @app.route('/api/admin/registros/<int:registro_id>', methods=['PUT'])
     @admin_required()
     def editar_registro(registro_id):
+        # (código de editar registro permanece o mesmo)
         registro = RegistroPonto.query.get_or_404(registro_id)
         dados = request.json
-        
-        # O admin pode alterar o timestamp, o tipo do registro ou adicionar uma justificativa
         if 'timestamp' in dados:
-            # Converte a string de data/hora enviada para um objeto datetime do Python
             try:
                 registro.timestamp = datetime.fromisoformat(dados['timestamp'])
             except ValueError:
                 return jsonify({"msg": "Formato de timestamp inválido. Use o formato ISO (YYYY-MM-DDTHH:MM:SS)"}), 400
-        
         if 'tipo_registro' in dados:
             registro.tipo_registro = dados['tipo_registro']
-        
         if 'justificativa' in dados:
             registro.justificativa = dados['justificativa']
-
         db.session.commit()
         return jsonify({"msg": "Registro atualizado com sucesso!"})
 
-    # --- NOVA ROTA PARA DELETAR UM REGISTRO ---
     @app.route('/api/admin/registros/<int:registro_id>', methods=['DELETE'])
     @admin_required()
     def deletar_registro(registro_id):
-        # Encontra o registro ou retorna um erro 404 se não existir
+        # (código de deletar registro permanece o mesmo)
         registro = RegistroPonto.query.get_or_404(registro_id)
-        
         db.session.delete(registro)
         db.session.commit()
         return jsonify({"msg": "Registro deletado com sucesso!"})
+
+    # --- NOVA ROTA PARA GERAR O RELATÓRIO ---
+    @app.route('/api/admin/relatorio', methods=['GET'])
+    @admin_required()
+    def gerar_relatorio():
+        # Pega os parâmetros 'ano' e 'mes' da URL (ex: /api/admin/relatorio?ano=2025&mes=6)
+        ano = request.args.get('ano', type=int)
+        mes = request.args.get('mes', type=int)
+
+        if not ano or not mes:
+            return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
+
+        # Busca todos os registros do mês e ano especificados
+        registros = RegistroPonto.query.join(Usuario).filter(
+            extract('year', RegistroPonto.timestamp) == ano,
+            extract('month', RegistroPonto.timestamp) == mes
+        ).order_by(Usuario.nome_completo, RegistroPonto.timestamp).all()
+
+        if not registros:
+            return jsonify({"msg": "Nenhum registro encontrado para este período."}), 404
+        
+        # Prepara os dados para o pandas
+        dados_para_excel = []
+        for r in registros:
+            dados_para_excel.append({
+                'ID Registro': r.id,
+                'Funcionário': r.usuario.nome_completo,
+                'Username': r.usuario.username,
+                'Data e Hora': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'Tipo': r.tipo_registro,
+                'Justificativa': r.justificativa
+            })
+        
+        # Cria um DataFrame do pandas
+        df = pd.DataFrame(dados_para_excel)
+        
+        # Cria um arquivo Excel em memória
+        output = io.BytesIO()
+        writer = pd.ExcelWriter(output, engine='openpyxl')
+        df.to_excel(writer, index=False, sheet_name='Registros de Ponto')
+        writer.save()
+        output.seek(0)
+        
+        # Envia o arquivo para o usuário fazer o download
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f'relatorio_ponto_{ano}_{mes}.xlsx'
+        )
 
     return app
 
