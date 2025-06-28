@@ -1,7 +1,7 @@
 # Arquivo: docker-compose.yml
 
 services:
-  # --- SERVIÇOS DO SISTEMA DE MONITORAMENTO (JÁ EXISTENTES) ---
+  # --- SERVIÇOS DO SISTEMA DE MONITORAMENTO ---
   influxdb:
     image: influxdb:1.8
     container_name: influxdb
@@ -46,9 +46,8 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     restart: unless-stopped
-
+  
   # --- NOVOS SERVIÇOS PARA O SISTEMA DE PONTO ---
-
   postgres-db:
     image: postgres:13-alpine
     container_name: postgres-db
@@ -71,12 +70,13 @@ services:
       - postgres-db
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@postgres-db:5432/${POSTGRES_DB}
+      - JWT_SECRET_KEY={JWT_SECRET_KEY}
     restart: unless-stopped
 
   ponto-frontend:
     build: ./ponto-frontend
     container_name: ponto-frontend
-    # AJUSTE: O frontend agora escuta na porta 80 do servidor, recebendo o tráfego da porta 3080 externa.
+    # AJUSTE: O frontend agora usa a porta 80, a porta padrão da web.
     ports:
       - "80:80"
     depends_on:
