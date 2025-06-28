@@ -1,2 +1,5 @@
-# Lista de bibliotecas Python. Por enquanto, só o Flask.
+# Lista de bibliotecas Python.
+# Pinamos a versão do Werkzeug para ser compatível com a do Flask.
+
 Flask==2.1.2
+Werkzeug==2.2.2
