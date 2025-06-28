@@ -32,6 +32,7 @@ services:
   network-api:
     build: ./api
     container_name: network-api
+    # AJUSTE: Porta 5000 reativada para a API de monitoramento.
     ports:
       - "5000:5000"
     depends_on:
@@ -75,8 +76,9 @@ services:
   ponto-frontend:
     build: ./ponto-frontend
     container_name: ponto-frontend
+    # AJUSTE: O frontend agora escuta na porta 80 do servidor, recebendo o tráfego da porta 3080 externa.
     ports:
-      - "3022:80"
+      - "80:80"
     depends_on:
       - ponto-api
     restart: unless-stopped
