@@ -1,21 +1,12 @@
+# Arquivo: ponto-api/Dockerfile
 
-# Instruções para o Docker construir a imagem da nossa API de ponto.
-
-# Usamos uma imagem base do Python, leve e otimizada.
 FROM python:3.9-slim
 
-# Define o diretório de trabalho dentro do contêiner.
 WORKDIR /app
 
-# Copia o arquivo de dependências para o contêiner.
 COPY requirements.txt .
-
-# Instala as bibliotecas Python que nossa API vai precisar.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia todo o resto do código da nossa API para o contêiner.
 COPY . .
 
-# Comando que será executado quando o contêiner iniciar.
 CMD ["python", "app.py"]
-
