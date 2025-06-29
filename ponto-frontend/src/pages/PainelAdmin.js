@@ -4,6 +4,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { FaUserPlus, FaFileExcel, FaClipboardList, FaSearch, FaEdit, FaTrash } from 'react-icons/fa';
 
+// Configuração do Axios para enviar o token automaticamente
 const api = axios.create();
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('user_token');
@@ -18,6 +19,7 @@ const PainelAdmin = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
 
+    // Estados para o formulário de criação/edição
     const [isEditing, setIsEditing] = useState(false);
     const [currentUserId, setCurrentUserId] = useState(null);
     const [nomeCompleto, setNomeCompleto] = useState('');
@@ -69,7 +71,6 @@ const PainelAdmin = () => {
         const url = isEditing ? `/api/admin/usuarios/${currentUserId}` : '/api/admin/usuarios';
         const method = isEditing ? 'put' : 'post';
         const data = { nome_completo: nomeCompleto, username, role };
-        // AJUSTE: Apenas envia a senha se o campo não estiver vazio
         if (password) {
             data.password = password;
         }
@@ -86,7 +87,6 @@ const PainelAdmin = () => {
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
-        // AJUSTE: Validação para não permitir senha em branco na criação
         if (!isEditing && !password) {
             Swal.fire('Atenção!', 'O campo de senha é obrigatório para criar um novo usuário.', 'warning');
             return;
@@ -200,13 +200,28 @@ const PainelAdmin = () => {
                      <div className="form-section">
                         <h3>{isEditing ? 'Editar Usuário' : 'Criar Novo Usuário'}</h3>
                         <form onSubmit={handleFormSubmit} className="user-form">
-                            <input type="text" placeholder="Nome Completo" value={nomeCompleto} onChange={e => setNomeCompleto(e.target.value)} required />
-                            <input type="text" placeholder="Username (login)" value={username} onChange={e => setUsername(e.target.value)} required />
-                            <input type="password" placeholder="Nova Senha (deixe em branco para não alterar)" value={password} onChange={e => setPassword(e.target.value)} />
-                            <select value={role} onChange={e => setRole(e.target.value)}>
-                                <option value="funcionario">Funcionário</option>
-                                <option value="admin">Administrador</option>
-                            </select>
+                            {/* AJUSTE: Novo layout de grid para o formulário */}
+                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label>Nome Completo</label>
+                                    <input type="text" placeholder="Nome do Funcionário" value={nomeCompleto} onChange={e => setNomeCompleto(e.target.value)} required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Username (login)</label>
+                                    <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Senha</label>
+                                    <input type="password" placeholder={isEditing ? "Deixe em branco para não alterar" : "Senha obrigatória"} value={password} onChange={e => setPassword(e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Permissão (Role)</label>
+                                    <select value={role} onChange={e => setRole(e.target.value)}>
+                                        <option value="funcionario">Funcionário</option>
+                                        <option value="admin">Administrador</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div className="form-actions">
                                 <button type="submit">{isEditing ? 'Salvar Alterações' : 'Confirmar Criação'}</button>
                                 <button type="button" onClick={resetForm} className="cancel-button">

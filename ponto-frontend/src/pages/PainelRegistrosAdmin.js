@@ -15,7 +15,7 @@ const PainelRegistrosAdmin = () => {
     const navigate = useNavigate();
     const [registros, setRegistros] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [showManualForm, setShowManualForm] = useState(false);
 
     const [filtroUsuario, setFiltroUsuario] = useState('');
@@ -137,7 +137,8 @@ const PainelRegistrosAdmin = () => {
             <div className="admin-container large">
                 <header className="dashboard-header">
                     <h2>Gerenciamento de Registros de Ponto</h2>
-                    <Link to="/admin" className="logout-button">Voltar ao Painel</Link>
+                    {/* AJUSTE: Aplicada a classe de estilo correta */}
+                    <Link to="/admin" className="action-link-button">Voltar ao Painel</Link>
                 </header>
 
                 <div className="filters-toolbar">
@@ -145,6 +146,7 @@ const PainelRegistrosAdmin = () => {
                         <option value="">Todos os Funcionários</option>
                         {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome_completo}</option>)}
                     </select>
+                    {/* AJUSTE: Ordem dos filtros alterada */}
                     <input type="number" value={filtroDia} onChange={e => setFiltroDia(e.target.value)} placeholder="Dia"/>
                     <input type="number" value={filtroMes} onChange={e => setFiltroMes(e.target.value)} placeholder="Mês"/>
                     <input type="number" value={filtroAno} onChange={e => setFiltroAno(e.target.value)} placeholder="Ano"/>
@@ -158,12 +160,21 @@ const PainelRegistrosAdmin = () => {
                     <div className="form-section manual-entry">
                         <h3>Lançamento Manual de Dia Completo</h3>
                         <form onSubmit={handleManualSubmit}>
-                            <div className="form-group"><label>Funcionário:</label><select value={manualUserId} onChange={e => setManualUserId(e.target.value)} required><option value="">Selecione...</option>{usuarios.map(u => <option key={u.id} value={u.id}>{u.nome_completo}</option>)}</select></div>
-                            <div className="form-group"><label>Data:</label><input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} required /></div>
-                            <div className="form-group"><label>Entrada:</label><input type="time" value={manualEntrada} onChange={e => setManualEntrada(e.target.value)} /></div>
-                            <div className="form-group"><label>Saída Almoço:</label><input type="time" value={manualSaidaAlmoco} onChange={e => setManualSaidaAlmoco(e.target.value)} /></div>
-                            <div className="form-group"><label>Volta Almoço:</label><input type="time" value={manualVoltaAlmoco} onChange={e => setManualVoltaAlmoco(e.target.value)} /></div>
-                            <div className="form-group"><label>Saída:</label><input type="time" value={manualSaida} onChange={e => setManualSaida(e.target.value)} /></div>
+                            {/* AJUSTE: Novo layout de grid para o formulário */}
+                            <div className="form-grid-manual">
+                                <div className="form-group span-2">
+                                    <label>Funcionário:</label>
+                                    <select value={manualUserId} onChange={e => setManualUserId(e.target.value)} required><option value="">Selecione...</option>{usuarios.map(u => <option key={u.id} value={u.id}>{u.nome_completo}</option>)}</select>
+                                </div>
+                                <div className="form-group span-2">
+                                    <label>Data:</label>
+                                    <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} required />
+                                </div>
+                                <div className="form-group"><label>Entrada:</label><input type="time" value={manualEntrada} onChange={e => setManualEntrada(e.target.value)} /></div>
+                                <div className="form-group"><label>Saída Almoço:</label><input type="time" value={manualSaidaAlmoco} onChange={e => setManualSaidaAlmoco(e.target.value)} /></div>
+                                <div className="form-group"><label>Volta Almoço:</label><input type="time" value={manualVoltaAlmoco} onChange={e => setManualVoltaAlmoco(e.target.value)} /></div>
+                                <div className="form-group"><label>Saída:</label><input type="time" value={manualSaida} onChange={e => setManualSaida(e.target.value)} /></div>
+                            </div>
                             <button type="submit" className="full-width-button">Salvar Dia</button>
                         </form>
                     </div>
@@ -182,7 +193,7 @@ const PainelRegistrosAdmin = () => {
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <tr><td colSpan="5">Carregando...</td></tr>
+                                <tr><td colSpan="5">Carregando registros...</td></tr>
                             ) : registros.length > 0 ? registros.map(r => (
                                 <tr key={r.id}>
                                     <td>{r.nome_usuario}</td>

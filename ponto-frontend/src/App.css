@@ -185,10 +185,66 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .role-tag.tipo-saida { background-color: var(--registro-color-4); color: var(--text-primary); }
 
 
+
+/* --- Formulários --- */
+.form-group { margin-bottom: 1rem; text-align: left; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-secondary); }
+input, select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus {
+  border-color: var(--theme-color);
+  box-shadow: 0 0 0 3px rgba(84, 101, 255, 0.2);
+  outline: none;
+}
+.form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+
+/* NOVO: Grid para formulários compactos */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+/* NOVO: Grid para o formulário de lançamento manual */
+.form-grid-manual {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+.form-grid-manual .span-2 {
+    grid-column: span 2;
+}
+
+
+/* --- SweetAlert2 Modal Buttons --- */
+/* AJUSTE: Deixando os botões de confirmação visíveis */
+.swal2-confirm.swal2-styled {
+  background-color: var(--confirm-color) !important;
+  color: var(--confirm-color-text) !important;
+}
+.swal2-cancel.swal2-styled {
+  background-color: var(--delete-color) !important;
+}
+.swal2-confirm.swal2-styled:hover {
+  background-color: var(--confirm-color-hover) !important;
+}
+.swal2-cancel.swal2-styled:hover {
+  background-color: var(--delete-color-hover) !important;
+}
+
 /* --- Media Queries para Responsividade --- */
 @media (max-width: 900px) {
     .admin-content {
         grid-template-columns: 1fr;
+    }
+    .form-grid-manual {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -197,3 +253,4 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     .admin-toolbar { flex-direction: column; }
     .filters-toolbar { flex-direction: column; align-items: stretch; }
 }
+
