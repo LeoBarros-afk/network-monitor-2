@@ -43,11 +43,20 @@ class RegistroPonto(db.Model):
     tipo_registro = db.Column(db.String(20), nullable=False)
     justificativa = db.Column(db.Text, nullable=True)
 
-def create_app():
+'''def create_app():
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
+
+    db.init_app(app)
+    bcrypt.init_app(app)
+    jwt.init_app(app)'''
+
+def create_app(config_class=DevelopmentConfig):
+    app = Flask(__name__)
+    # Carrega a configuração a partir do objeto passado como parâmetro
+    app.config.from_object(config_class)
 
     db.init_app(app)
     bcrypt.init_app(app)

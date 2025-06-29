@@ -13,6 +13,11 @@ admins = [
         "username": "DorianAdmin",
         "password": "admin@q@"
     },
+    {
+        "nome_completo": "IsisValentina",
+        "username": "Isis",
+        "password": "admin"
+    },
     
 ]
 
