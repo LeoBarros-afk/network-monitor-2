@@ -1,4 +1,3 @@
-
 import os
 import io
 import pandas as pd
@@ -6,38 +5,17 @@ from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity, get_jwt
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta # Importa timezone e timedelta
 from functools import wraps
 from sqlalchemy import extract
 
-# Importa as configurações que criamos
-from config import DevelopmentConfig
-
-# As extensões são inicializadas aqui, fora da função, para serem globais.
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 jwt = JWTManager()
 
-# --- Modelos do Banco de Dados ---
-class Usuario(db.Model):
-    __tablename__ = 'usuarios'
-    id = db.Column(db.Integer, primary_key=True)
-    nome_completo = db.Column(db.String(100), nullable=False)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='funcionario')
-    registros = db.relationship('RegistroPonto', backref='usuario', lazy=True, cascade="all, delete-orphan")
+# Define nosso fuso horário de -3 horas
+BR_TIMEZONE = timezone(timedelta(hours=-3))
 
-class RegistroPonto(db.Model):
-    __tablename__ = 'registros_ponto'
-    id = db.Column(db.Integer, primary_key=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    tipo_registro = db.Column(db.String(20), nullable=False)
-    justificativa = db.Column(db.Text, nullable=True)
-
-
-# --- Decorador de Admin ---
 def admin_required():
     def wrapper(fn):
         @wraps(fn)
@@ -51,22 +29,36 @@ def admin_required():
         return decorator
     return wrapper
 
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
+    id = db.Column(db.Integer, primary_key=True)
+    nome_completo = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default='funcionario')
+    registros = db.relationship('RegistroPonto', backref='usuario', lazy=True, cascade="all, delete-orphan")
 
-# --- Função "Fábrica" que Cria a Aplicação ---
-def create_app(config_class=DevelopmentConfig):
+class RegistroPonto(db.Model):
+    __tablename__ = 'registros_ponto'
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False) # Removemos o default para definir na rota
+    tipo_registro = db.Column(db.String(20), nullable=False)
+    justificativa = db.Column(db.Text, nullable=True)
+
+def create_app():
     app = Flask(__name__)
-    # Carrega a configuração a partir do objeto
-    app.config.from_object(config_class)
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 
-    # Vincula as extensões à aplicação
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
 
-    # --- ROTAS DA API ---
-    
     @app.route('/api/login', methods=['POST'])
     def login():
+        # ... (código inalterado) ...
         username = request.json.get('username', None)
         password = request.json.get('password', None)
         user = Usuario.query.filter_by(username=username).first()
@@ -75,23 +67,11 @@ def create_app(config_class=DevelopmentConfig):
             access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
             return jsonify(access_token=access_token, role=user.role)
         return jsonify({"msg": "Usuário ou senha inválidos"}), 401
-
-    @app.route('/api/ponto/registrar', methods=['POST'])
-    @jwt_required()
-    def registrar_ponto():
-        tipo = request.json.get('tipo', None)
-        tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
-        if not tipo or tipo not in tipos_validos:
-            return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
-        current_user_id = get_jwt_identity()
-        novo_registro = RegistroPonto(usuario_id=int(current_user_id), tipo_registro=tipo)
-        db.session.add(novo_registro)
-        db.session.commit()
-        return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
     
     @app.route('/api/me/hoje', methods=['GET'])
     @jwt_required()
     def get_user_and_today_records():
+        # ... (código inalterado) ...
         current_user_id = get_jwt_identity()
         user = Usuario.query.get(int(current_user_id))
         today_start = datetime.combine(date.today(), datetime.min.time())
@@ -99,39 +79,61 @@ def create_app(config_class=DevelopmentConfig):
         tipos_registrados = [r.tipo_registro for r in registros_hoje]
         user_data = { "id": user.id, "nome_completo": user.nome_completo, "registros_hoje": tipos_registrados }
         return jsonify(user_data)
-
+        
+    @app.route('/api/ponto/registrar', methods=['POST'])
+    @jwt_required()
+    def registrar_ponto():
+        tipo = request.json.get('tipo', None)
+        tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
+        if not tipo or tipo not in tipos_validos: return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
+        current_user_id = get_jwt_identity()
+        # AJUSTE: O timestamp agora é gerado com o fuso horário correto
+        novo_registro = RegistroPonto(
+            usuario_id=int(current_user_id),
+            tipo_registro=tipo,
+            timestamp=datetime.now(BR_TIMEZONE)
+        )
+        db.session.add(novo_registro)
+        db.session.commit()
+        return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
+    
     @app.route('/api/me/registros', methods=['GET'])
     @jwt_required()
     def get_my_records():
         current_user_id = get_jwt_identity()
         mes = request.args.get('mes', type=int)
         ano = request.args.get('ano', type=int)
-        if not mes or not ano: return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
-        query = RegistroPonto.query.filter_by(usuario_id=int(current_user_id)).filter(extract('month', RegistroPonto.timestamp) == mes, extract('year', RegistroPonto.timestamp) == ano).order_by(RegistroPonto.timestamp.asc())
+        if not mes or not ano:
+            return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
+        query = RegistroPonto.query.filter_by(usuario_id=int(current_user_id)).filter(
+            extract('month', RegistroPonto.timestamp) == mes,
+            extract('year', RegistroPonto.timestamp) == ano
+        ).order_by(RegistroPonto.timestamp.asc())
         registros = query.all()
         return jsonify([{"id": r.id, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro} for r in registros])
-    
+
+    # --- ROTAS DE ADMINISTRAÇÃO ---
     @app.route('/api/admin/usuarios', methods=['GET', 'POST'])
     @admin_required()
     def gerenciar_usuarios():
+        # ... (código inalterado) ...
         if request.method == 'GET':
             usuarios = Usuario.query.order_by(Usuario.nome_completo).all()
             return jsonify([{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios])
         if request.method == 'POST':
             dados = request.json
-            if not all([dados.get('username'), dados.get('password'), dados.get('nome_completo')]):
-                return jsonify({"msg": "Dados incompletos"}), 400
-            if Usuario.query.filter_by(username=dados['username']).first():
-                return jsonify({"msg": "Username já existe"}), 409
+            if not all([dados.get('username'), dados.get('password'), dados.get('nome_completo')]): return jsonify({"msg": "Dados incompletos"}), 400
+            if Usuario.query.filter_by(username=dados['username']).first(): return jsonify({"msg": "Username já existe"}), 409
             hashed_password = bcrypt.generate_password_hash(dados['password']).decode('utf-8')
             novo_usuario = Usuario(username=dados['username'], password_hash=hashed_password, nome_completo=dados['nome_completo'], role=dados.get('role', 'funcionario'))
             db.session.add(novo_usuario)
             db.session.commit()
             return jsonify({"msg": "Usuário criado com sucesso!"}), 201
-    
+
     @app.route('/api/admin/usuarios/<int:usuario_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_usuario_especifico(usuario_id):
+        # ... (código inalterado) ...
         user = Usuario.query.get_or_404(usuario_id)
         if request.method == 'PUT':
             dados = request.json
@@ -151,6 +153,7 @@ def create_app(config_class=DevelopmentConfig):
     @admin_required()
     def gerenciar_registros():
         if request.method == 'GET':
+            # ... (código inalterado) ...
             usuario_id = request.args.get('usuario_id', type=int)
             mes = request.args.get('mes', type=int)
             ano = request.args.get('ano', type=int)
@@ -162,6 +165,7 @@ def create_app(config_class=DevelopmentConfig):
             if dia: query = query.filter(extract('day', RegistroPonto.timestamp) == dia)
             registros = query.all()
             return jsonify([{"id": r.id, "usuario_id": r.usuario_id, "nome_usuario": r.usuario.nome_completo, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro, "justificativa": r.justificativa} for r in registros])
+
         if request.method == 'POST':
             dados = request.json
             usuario_id = dados.get('usuario_id')
@@ -172,7 +176,8 @@ def create_app(config_class=DevelopmentConfig):
             for tipo, hora_str in registros_ponto.items():
                 if hora_str:
                     hora, minuto = map(int, hora_str.split(':'))
-                    timestamp_completo = data_base.replace(hour=hora, minute=minuto)
+                    # AJUSTE: O timestamp manual também é criado com o fuso horário correto
+                    timestamp_completo = data_base.replace(hour=hora, minute=minuto, tzinfo=BR_TIMEZONE)
                     novo_registro = RegistroPonto(usuario_id=usuario_id, tipo_registro=tipo, timestamp=timestamp_completo, justificativa="Lançamento Manual")
                     db.session.add(novo_registro)
             db.session.commit()
@@ -181,6 +186,7 @@ def create_app(config_class=DevelopmentConfig):
     @app.route('/api/admin/registros/<int:registro_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_registro_especifico(registro_id):
+        # ... (código inalterado) ...
         registro = RegistroPonto.query.get_or_404(registro_id)
         if request.method == 'PUT':
             dados = request.json
@@ -193,10 +199,11 @@ def create_app(config_class=DevelopmentConfig):
             db.session.delete(registro)
             db.session.commit()
             return jsonify({"msg": "Registro deletado com sucesso!"})
-
+    
     @app.route('/api/admin/relatorio', methods=['GET'])
     @admin_required()
     def gerar_relatorio():
+        # ... (código inalterado) ...
         ano = request.args.get('ano', type=int)
         mes = request.args.get('mes', type=int)
         usuario_id = request.args.get('usuario_id', type=int)
@@ -217,7 +224,6 @@ def create_app(config_class=DevelopmentConfig):
 
     return app
 
-# --- Bloco de Execução Principal ---
 if __name__ == '__main__':
     app = create_app()
     app.run(host='0.0.0.0', port=5001)
