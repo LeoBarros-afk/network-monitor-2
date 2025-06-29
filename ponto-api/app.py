@@ -1,4 +1,3 @@
-# Arquivo: ponto-api/app.py (Versão Completa e Funcional)
 
 import os
 import io
