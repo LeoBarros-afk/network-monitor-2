@@ -16,7 +16,8 @@ body {
   --subtheme-color-text: #0d5c52;
   --hover-color: #BAACBD;
   --confirm-color: #93E1D8;
-  --confirm-color-hover: #7acbbd;
+  --confirm-color-hover: #7acbbd; /* Um pouco mais escuro para o hover */
+  --confirm-color-text: #0d5c52;
   --registro-base-color: #D0E562;
   --registro-color-1: #d0e562; /* Entrada */
   --registro-color-2: #c1d15a; /* Saída Almoço */
@@ -26,6 +27,8 @@ body {
   --text-secondary: #6b7280;
   --border-color: #e5e7eb;
   --delete-color: #EF4444;
+  --delete-color-hover: #B91C1C;
+  --warn-orange: #F59E0B;
 }
 
 .App {
@@ -47,10 +50,13 @@ body {
   max-width: 450px;
   text-align: center;
 }
+.login-container form .form-group { width: 100%; }
+.login-container form button { width: 100%; }
 
 .dashboard-container { max-width: 700px; }
 .admin-container { max-width: 1024px; }
 .admin-container.large { max-width: 1280px; }
+
 
 /* --- Títulos --- */
 h1, h2, h3 { color: var(--text-primary); }
@@ -109,44 +115,54 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 /* --- Painel do Funcionário --- */
 .actions-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .action-button { padding: 1.5rem; font-size: 1.1rem; height: 80px; }
-.action-button:disabled { background-color: var(--confirm-color) !important; color: var(--subtheme-color-text) !important; opacity: 0.7; }
+.action-button:disabled { background-color: var(--confirm-color) !important; color: var(--confirm-color-text) !important; opacity: 0.7; }
 .action-button.entrada { background-color: var(--registro-color-1); color: var(--text-primary); }
 .action-button.saida_almoco { background-color: var(--registro-color-2); color: var(--text-primary); }
 .action-button.volta_almoco { background-color: var(--registro-color-3); color: var(--text-primary); }
 .action-button.saida { background-color: var(--registro-color-4); color: var(--text-primary); }
 .extra-actions { margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; }
 .extra-button { background-color: #fff; color: var(--theme-color); border: 1px solid var(--theme-color); width: auto; padding: 0.75rem 1.5rem; }
-.extra-button:hover { background-color: #f0f2f7; }
+.extra-button:hover { background-color: rgba(84, 101, 255, 0.05); }
 
 /* --- Painel do Administrador --- */
 .admin-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
-.admin-toolbar button, .admin-toolbar .action-link-button { width: auto; flex-grow: 1; text-decoration: none; }
-.admin-toolbar .create-user-button, .admin-toolbar .manual-button { background-color: var(--theme-color); }
+.admin-toolbar button, .admin-toolbar .action-link-button { width: auto; flex-grow: 1; text-decoration: none; justify-content: center;}
+.admin-toolbar .create-user-button { background-color: var(--theme-color); }
 .admin-toolbar .action-link-button { background-color: var(--subtheme-color); color: var(--subtheme-color-text); }
 .admin-toolbar .action-link-button:hover { background-color: var(--hover-color); color: var(--text-primary); }
 .admin-toolbar .export-button { background-color: #10B981; }
+.admin-toolbar .export-button:hover { background-color: #059669; }
 
 .admin-content { display: grid; grid-template-columns: 1fr 2fr; gap: 2.5rem; text-align: left; margin-top: 2rem;}
+.form-section { padding: 2rem; background-color: #f9fafb; border-radius: 8px; margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem; }
 .list-section { min-height: 420px; /* Evita que a tela "pule" ao filtrar */ }
 .search-bar { display: flex; align-items: center; margin-bottom: 1rem; border: 1px solid #D1D5DB; border-radius: 8px; padding: 0 0.5rem; }
 .search-icon { color: #9CA3AF; margin-right: 0.5rem; }
 .search-bar input { border: none !important; box-shadow: none !important; padding-left: 0; }
 
 .user-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
-.user-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
+.user-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s; }
+.user-list li .user-info { cursor: default; }
 .user-list li:last-child { border-bottom: none; }
-.user-list li:hover { background-color: var(--hover-color); color: #fff; }
+.user-list li:hover { background-color: #f0f2f7; }
 .user-list li .user-actions { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
 .user-list li:hover .user-actions { visibility: visible; opacity: 1; }
 .user-actions { display: flex; gap: 0.5rem; }
-.icon-button { background: none; border: none; color: var(--text-secondary); width: auto; padding: 0.5rem; border-radius: 50%; }
+.icon-button { background: none; border: none; color: var(--text-secondary); cursor: pointer; width: auto; padding: 0.5rem; border-radius: 50%; }
 .user-list li:hover .icon-button { color: var(--text-primary); }
 .icon-button:hover { color: var(--theme-color); background: rgba(84, 101, 255, 0.1); }
-.icon-button.delete:hover { color: var(--delete-color); background: rgba(239, 68, 68, 0.1); }
+.icon-button.delete:hover { color: var(--delete-color); background: #fee2e2; }
 
 .role-tag { padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: white; }
 .role-tag.admin { background-color: var(--delete-color); }
 .role-tag.funcionario { background-color: var(--text-secondary); }
+
+/* --- SweetAlert2 Modal Buttons --- */
+.swal2-confirm.swal2-styled { background-color: var(--confirm-color) !important; color: var(--confirm-color-text) !important; }
+.swal2-cancel.swal2-styled { background-color: var(--delete-color) !important; }
+.swal2-confirm.swal2-styled:hover { background-color: var(--confirm-color-hover) !important; }
+.swal2-cancel.swal2-styled:hover { background-color: var(--delete-color-hover) !important; }
+
 
 /* --- Tabela de Registros (Admin) --- */
 .filters-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; align-items: center; }
@@ -163,8 +179,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .records-table th, .records-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
 .records-table th { background-color: #f9fafb; font-size: 0.9rem; color: var(--text-secondary); }
 .record-actions { text-align: center; }
-.role-tag.tipo-entrada, .role-tag.tipo-volta_almoco { background-color: var(--registro-color-1); color: var(--text-primary); }
-.role-tag.tipo-saida, .role-tag.tipo-saida_almoco { background-color: var(--warn-orange); color: var(--text-primary); }
+.role-tag.tipo-entrada { background-color: var(--registro-color-1); color: var(--text-primary); }
+.role-tag.tipo-volta-almoco { background-color: var(--registro-color-2); color: var(--text-primary); }
+.role-tag.tipo-saida-almoco { background-color: var(--registro-color-3); color: var(--text-primary); }
+.role-tag.tipo-saida { background-color: var(--registro-color-4); color: var(--text-primary); }
 
 
 /* --- Media Queries para Responsividade --- */

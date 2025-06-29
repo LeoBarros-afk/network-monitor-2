@@ -55,6 +55,7 @@ def create_app():
 
     @app.route('/api/login', methods=['POST'])
     def login():
+        # ... (código inalterado) ...
         username = request.json.get('username', None)
         password = request.json.get('password', None)
         user = Usuario.query.filter_by(username=username).first()
@@ -93,9 +94,11 @@ def create_app():
     @admin_required()
     def gerenciar_usuarios():
         if request.method == 'GET':
+            # AJUSTE: Ordena os usuários por nome completo.
             usuarios = Usuario.query.order_by(Usuario.nome_completo).all()
             return jsonify([{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios])
         if request.method == 'POST':
+            # ... (código inalterado) ...
             dados = request.json
             if not all([dados.get('username'), dados.get('password'), dados.get('nome_completo')]): return jsonify({"msg": "Dados incompletos"}), 400
             if Usuario.query.filter_by(username=dados['username']).first(): return jsonify({"msg": "Username já existe"}), 409
@@ -118,6 +121,7 @@ def create_app():
                 user.password_hash = bcrypt.generate_password_hash(dados['password']).decode('utf-8')
             db.session.commit()
             return jsonify({"msg": "Usuário atualizado com sucesso!"})
+        
         if request.method == 'DELETE':
             db.session.delete(user)
             db.session.commit()
@@ -127,25 +131,24 @@ def create_app():
     @admin_required()
     def gerenciar_registros():
         if request.method == 'GET':
+            # ... (código inalterado) ...
             usuario_id = request.args.get('usuario_id', type=int)
             mes = request.args.get('mes', type=int)
             ano = request.args.get('ano', type=int)
-            dia = request.args.get('dia', type=int) # Novo filtro por dia
-
+            dia = request.args.get('dia', type=int)
             query = RegistroPonto.query.join(Usuario).order_by(Usuario.nome_completo, RegistroPonto.timestamp.desc())
             if usuario_id: query = query.filter(RegistroPonto.usuario_id == usuario_id)
             if mes: query = query.filter(extract('month', RegistroPonto.timestamp) == mes)
             if ano: query = query.filter(extract('year', RegistroPonto.timestamp) == ano)
-            if dia: query = query.filter(extract('day', RegistroPonto.timestamp) == dia) # Aplica o filtro de dia
-                
+            if dia: query = query.filter(extract('day', RegistroPonto.timestamp) == dia)
             registros = query.all()
             return jsonify([{"id": r.id, "usuario_id": r.usuario_id, "nome_usuario": r.usuario.nome_completo, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro, "justificativa": r.justificativa} for r in registros])
 
         if request.method == 'POST':
-            # ... (código para lançamento manual permanece o mesmo) ...
+            # ... (código inalterado) ...
             dados = request.json
             usuario_id = dados.get('usuario_id')
-            data_str = dados.get('data') # "YYYY-MM-DD"
+            data_str = dados.get('data')
             registros_ponto = dados.get('registros', {})
             if not all([usuario_id, data_str, registros_ponto]): return jsonify({"msg": "Dados incompletos"}), 400
             data_base = datetime.strptime(data_str, '%Y-%m-%d')
@@ -161,7 +164,7 @@ def create_app():
     @app.route('/api/admin/registros/<int:registro_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_registro_especifico(registro_id):
-        # ... (código para editar/deletar registro específico permanece o mesmo)
+        # ... (código inalterado) ...
         registro = RegistroPonto.query.get_or_404(registro_id)
         if request.method == 'PUT':
             dados = request.json
@@ -175,10 +178,10 @@ def create_app():
             db.session.commit()
             return jsonify({"msg": "Registro deletado com sucesso!"})
 
-    # ... (outras rotas permanecem iguais) ...
     @app.route('/api/admin/relatorio', methods=['GET'])
     @admin_required()
     def gerar_relatorio():
+        # ... (código inalterado) ...
         ano = request.args.get('ano', type=int)
         mes = request.args.get('mes', type=int)
         if not ano or not mes: return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400

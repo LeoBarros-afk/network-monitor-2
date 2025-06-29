@@ -4,7 +4,6 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { FaUserPlus, FaFileExcel, FaClipboardList, FaSearch, FaEdit, FaTrash } from 'react-icons/fa';
 
-// Configuração do Axios para enviar o token automaticamente
 const api = axios.create();
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('user_token');
@@ -19,7 +18,6 @@ const PainelAdmin = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
 
-    // Estados para o formulário de criação/edição
     const [isEditing, setIsEditing] = useState(false);
     const [currentUserId, setCurrentUserId] = useState(null);
     const [nomeCompleto, setNomeCompleto] = useState('');
@@ -63,15 +61,16 @@ const PainelAdmin = () => {
         setNomeCompleto(user.nome_completo);
         setUsername(user.username);
         setRole(user.role);
-        setPassword(''); // Limpa o campo de senha por segurança
-        setShowCreateForm(true); // Mostra o formulário para edição
+        setPassword('');
+        setShowCreateForm(true);
     };
-
+    
     const submitForm = async () => {
         const url = isEditing ? `/api/admin/usuarios/${currentUserId}` : '/api/admin/usuarios';
         const method = isEditing ? 'put' : 'post';
         const data = { nome_completo: nomeCompleto, username, role };
-        if (password) { // Só envia a senha se o campo não estiver vazio
+        // AJUSTE: Apenas envia a senha se o campo não estiver vazio
+        if (password) {
             data.password = password;
         }
 
@@ -87,6 +86,12 @@ const PainelAdmin = () => {
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
+        // AJUSTE: Validação para não permitir senha em branco na criação
+        if (!isEditing && !password) {
+            Swal.fire('Atenção!', 'O campo de senha é obrigatório para criar um novo usuário.', 'warning');
+            return;
+        }
+
         const userData = isEditing ? 
             `<b>Nome:</b> ${nomeCompleto}<br/><b>Username:</b> ${username}<br/><b>Permissão:</b> ${role}<br/><i>(A senha só será alterada se o campo foi preenchido)</i>` :
             `<b>Nome:</b> ${nomeCompleto}<br/><b>Username:</b> ${username}<br/><b>Permissão:</b> ${role}`;
@@ -96,8 +101,8 @@ const PainelAdmin = () => {
             html: `<div style="text-align: left; padding-left: 1rem;">${userData}</div>`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: 'var(--success-green)',
-            cancelButtonColor: 'var(--tag-admin)',
+            confirmButtonColor: 'var(--confirm-color)',
+            cancelButtonColor: 'var(--delete-color)',
             confirmButtonText: isEditing ? 'Salvar Alterações' : 'Criar Usuário',
             cancelButtonText: 'Cancelar'
         }).then((result) => {
@@ -113,7 +118,7 @@ const PainelAdmin = () => {
             text: `Isso irá deletar permanentemente o usuário "${user.nome_completo}". Esta ação não pode ser desfeita!`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: 'var(--tag-admin)',
+            confirmButtonColor: 'var(--delete-color)',
             cancelButtonColor: 'var(--secondary-gray)',
             confirmButtonText: 'Sim, deletar!',
             cancelButtonText: 'Cancelar'
@@ -137,6 +142,9 @@ const PainelAdmin = () => {
               '<input id="swal-input-ano" class="swal2-input" placeholder="Ano (ex: 2025)" type="number">' +
               '<input id="swal-input-mes" class="swal2-input" placeholder="Mês (1-12)" type="number">',
             focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Gerar',
+            cancelButtonText: 'Cancelar',
             preConfirm: () => {
               return {
                 ano: document.getElementById('swal-input-ano').value,
@@ -148,7 +156,7 @@ const PainelAdmin = () => {
           if (formValues && formValues.ano && formValues.mes) {
             try {
                 const response = await api.get(`/api/admin/relatorio?ano=${formValues.ano}&mes=${formValues.mes}`, {
-                    responseType: 'blob', // Importante para o download de arquivos
+                    responseType: 'blob',
                 });
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const link = document.createElement('a');
@@ -177,13 +185,13 @@ const PainelAdmin = () => {
                 </header>
 
                 <div className="admin-toolbar">
-                    <button onClick={() => { resetForm(); setShowCreateForm(!showCreateForm); }} className="action-link-button">
+                    <button onClick={() => { resetForm(); setShowCreateForm(!showCreateForm); }} className="action-link-button create-user-button">
                         <FaUserPlus /> {showCreateForm ? 'Ocultar Formulário' : 'Criar Usuário'}
                     </button>
                     <Link to="/admin/registros-de-ponto" className="action-link-button">
                         <FaClipboardList /> Visualizar Registros
                     </Link>
-                    <button onClick={handleExport} className="action-link-button export">
+                    <button onClick={handleExport} className="action-link-button export-button">
                         <FaFileExcel /> Exportar Relatório
                     </button>
                 </div>

@@ -15,14 +15,13 @@ const PainelRegistrosAdmin = () => {
     const navigate = useNavigate();
     const [registros, setRegistros] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [showManualForm, setShowManualForm] = useState(false);
-    const [activeRecordMenu, setActiveRecordMenu] = useState(null);
 
     const [filtroUsuario, setFiltroUsuario] = useState('');
-    const [filtroMes, setFiltroMes] = useState(new Date().getMonth() + 1);
     const [filtroAno, setFiltroAno] = useState(new Date().getFullYear());
-    const [filtroDia, setFiltroDia] = useState(''); // Novo filtro por dia
+    const [filtroMes, setFiltroMes] = useState(new Date().getMonth() + 1);
+    const [filtroDia, setFiltroDia] = useState('');
 
     const [manualUserId, setManualUserId] = useState('');
     const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
@@ -35,10 +34,10 @@ const PainelRegistrosAdmin = () => {
         setIsLoading(true);
         try {
             const params = {
-                usuario_id: filtroUsuario || undefined, // Envia undefined se estiver vazio
+                usuario_id: filtroUsuario || undefined,
                 mes: filtroMes,
                 ano: filtroAno,
-                dia: filtroDia || undefined, // Envia undefined se estiver vazio
+                dia: filtroDia || undefined,
             };
             const response = await api.get('/api/admin/registros', { params });
             setRegistros(response.data);
@@ -50,9 +49,16 @@ const PainelRegistrosAdmin = () => {
         }
     };
 
-    const fetchUsuarios = async () => { /* ... (código existente, inalterado) ... */ };
+    const fetchUsuarios = async () => {
+        try {
+            const response = await api.get('/api/admin/usuarios');
+            setUsuarios(response.data);
+        } catch (error) {
+            console.error("Erro ao buscar usuários:", error);
+        }
+    };
+    
     useEffect(() => { fetchUsuarios(); }, []);
-    // Removido o fetch automático para dar controle ao usuário com o botão de busca
     
     const handleDeleteRecord = (registroId) => {
         Swal.fire({
@@ -60,7 +66,7 @@ const PainelRegistrosAdmin = () => {
             text: `Isso irá deletar o registro #${registroId}.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: 'var(--tag-admin)',
+            confirmButtonColor: 'var(--delete-color)',
             cancelButtonColor: 'var(--secondary-gray)',
             confirmButtonText: 'Sim, deletar!',
             cancelButtonText: 'Cancelar'
@@ -69,7 +75,7 @@ const PainelRegistrosAdmin = () => {
                 try {
                     await api.delete(`/api/admin/registros/${registroId}`);
                     Swal.fire('Deletado!', 'O registro foi deletado.', 'success');
-                    fetchRegistros(); // Atualiza a lista
+                    fetchRegistros();
                 } catch (error) {
                     Swal.fire('Erro!', 'Não foi possível deletar o registro.', 'error');
                 }
@@ -85,6 +91,7 @@ const PainelRegistrosAdmin = () => {
             `<input id="swal-input-justificativa" class="swal2-input" placeholder="Justificativa" value="${registro.justificativa || ''}">`,
           focusConfirm: false,
           showCancelButton: true,
+          confirmButtonText: 'Salvar',
           preConfirm: () => {
             return {
               timestamp: document.getElementById('swal-input-datetime').value,
@@ -104,7 +111,26 @@ const PainelRegistrosAdmin = () => {
         }
     };
     
-    const handleManualSubmit = async (e) => { /* ... (código existente, inalterado) ... */ };
+    const handleManualSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post('/api/admin/registros', {
+                usuario_id: manualUserId,
+                data: manualDate,
+                registros: {
+                    entrada: manualEntrada,
+                    saida_almoco: manualSaidaAlmoco,
+                    volta_almoco: manualVoltaAlmoco,
+                    saida: manualSaida,
+                }
+            });
+            Swal.fire('Sucesso!', 'Registros manuais lançados com sucesso.', 'success');
+            setShowManualForm(false);
+            fetchRegistros();
+        } catch (error) {
+            Swal.fire('Erro!', error.response?.data?.msg || 'Não foi possível lançar os registros.', 'error');
+        }
+    };
 
     return (
         <div className="App">
@@ -119,12 +145,12 @@ const PainelRegistrosAdmin = () => {
                         <option value="">Todos os Funcionários</option>
                         {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome_completo}</option>)}
                     </select>
-                    <input type="number" value={filtroAno} onChange={e => setFiltroAno(e.target.value)} placeholder="Ano"/>
+                    <input type="number" value={filtroDia} onChange={e => setFiltroDia(e.target.value)} placeholder="Dia"/>
                     <input type="number" value={filtroMes} onChange={e => setFiltroMes(e.target.value)} placeholder="Mês"/>
-                    <input type="number" value={filtroDia} onChange={e => setFiltroDia(e.target.value)} placeholder="Dia (opcional)"/>
+                    <input type="number" value={filtroAno} onChange={e => setFiltroAno(e.target.value)} placeholder="Ano"/>
                     <button onClick={fetchRegistros} className="search-button"><FaSearch/> Buscar</button>
                     <button onClick={() => setShowManualForm(!showManualForm)} className="manual-button">
-                        <FaPlusCircle/> {showManualForm ? 'Fechar' : 'Lançamento'}
+                        <FaPlusCircle/> {showManualForm ? 'Fechar Lançamento' : 'Lançamento Manual'}
                     </button>
                 </div>
 
@@ -162,7 +188,7 @@ const PainelRegistrosAdmin = () => {
                                     <td>{r.nome_usuario}</td>
                                     <td>{new Date(r.timestamp).toLocaleDateString('pt-BR')}</td>
                                     <td>{new Date(r.timestamp).toLocaleTimeString('pt-BR')}</td>
-                                    <td><span className={`role-tag tipo-${r.tipo_registro}`}>{r.tipo_registro.replace('_', ' ')}</span></td>
+                                    <td><span className={`role-tag tipo-${r.tipo_registro.replace('_', '-')}`}>{r.tipo_registro.replace('_', ' ')}</span></td>
                                     <td className="record-actions">
                                         <button className="icon-button" title="Editar Registro" onClick={() => handleEditRecord(r)}><FaEdit/></button>
                                         <button className="icon-button delete" title="Deletar Registro" onClick={() => handleDeleteRecord(r.id)}><FaTrash/></button>
