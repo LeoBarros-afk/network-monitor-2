@@ -1,3 +1,8 @@
+/*
+  Arquivo de Estilo Completo para a Aplicação de Ponto
+  Tema: Roxo Leve
+*/
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -14,22 +19,23 @@ body {
   --primary-purple-hover: #5B21B6;
   --secondary-gray: #4B5563;
   --secondary-gray-hover: #374151;
-  --tag-admin: #EF4444;
+  --tag-admin: #DC2626;
   --tag-funcionario: #6B7280;
   --success-green: #10B981;
   --warn-orange: #F59E0B;
+  --border-color: #E5E7EB;
 }
 
 .App {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* Alinha os painéis no topo */
   min-height: 100vh;
-  padding: 1rem;
+  padding: 2rem;
   box-sizing: border-box;
 }
 
-/* --- Estilos Gerais --- */
+/* --- Estilos Gerais para os Painéis --- */
 .login-container, .dashboard-container, .admin-container {
   padding: 2.5rem;
   background-color: white;
@@ -41,18 +47,20 @@ body {
 }
 
 .dashboard-container { max-width: 700px; }
-.admin-container { max-width: 900px; }
+.admin-container { max-width: 1024px; }
+.admin-container.large { max-width: 1280px; }
 
 
+/* --- Títulos --- */
 h1, h2, h3 { color: #111827; }
-h1 { margin-bottom: 2rem; }
-h3 { margin-top: 0; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.75rem; font-size: 1.25rem; }
-
+h1 { margin-top: 0; margin-bottom: 2rem; }
+h2 { margin: 0; }
+h3 { margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; font-size: 1.25rem; text-align: left; }
 
 /* --- Formulários --- */
 .form-group { margin-bottom: 1rem; text-align: left; }
 .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--secondary-gray); }
-.form-group input, input[type="text"], input[type="password"], select {
+input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="time"], select {
   width: 100%;
   padding: 0.8rem 1rem;
   font-size: 1rem;
@@ -61,7 +69,7 @@ h3 { margin-top: 0; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.75rem; f
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.form-group input:focus, select:focus {
+input:focus, select:focus {
   border-color: var(--primary-purple);
   box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.2);
   outline: none;
@@ -69,9 +77,8 @@ h3 { margin-top: 0; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.75rem; f
 
 /* --- Botões --- */
 button {
-  width: 100%;
   padding: 0.8rem;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: bold;
   color: white;
   background-color: var(--primary-purple);
@@ -82,20 +89,23 @@ button {
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  gap: 0.5rem;
 }
 button:hover:not(:disabled) { background-color: var(--primary-purple-hover); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .logout-button { width: auto; padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: var(--secondary-gray); }
 .logout-button:hover { background-color: var(--secondary-gray-hover); }
 
-/* --- Painel --- */
-.dashboard-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; padding-bottom: 1rem; margin-bottom: 2rem; }
-.dashboard-header h2 { margin: 0; font-size: 1.5rem; }
-.current-date { margin: 0; font-size: 0.9rem; color: var(--secondary-gray); }
+/* --- Cabeçalho dos Painéis --- */
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }
+.dashboard-header h2 { font-size: 1.5rem; }
+.current-date { margin: 4px 0 0 0; font-size: 0.9rem; color: var(--secondary-gray); text-align: left; }
 
+/* --- Painel do Funcionário --- */
 .actions-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.action-button { padding: 1.5rem; font-size: 1.1rem; display: flex; justify-content: center; align-items: center; height: 80px; }
-.action-button:disabled { opacity: 0.5; cursor: not-allowed; background-color: var(--success-green) !important; }
-
+.action-button { padding: 1.5rem; font-size: 1.1rem; height: 80px; }
+.action-button:disabled { background-color: var(--success-green) !important; }
 .action-button.entrada { background-color: #2563EB; }
 .action-button.entrada:hover:not(:disabled) { background-color: #1D4ED8; }
 .action-button.saida { background-color: #DC2626; }
@@ -103,95 +113,63 @@ button:hover:not(:disabled) { background-color: var(--primary-purple-hover); }
 .action-button.almoco { background-color: #D97706; }
 .action-button.almoco:hover:not(:disabled) { background-color: #B45309; }
 
-/* --- Outras Ações --- */
-.extra-actions {
-  margin-top: 2rem;
-  border-top: 1px solid #E5E7EB;
-  padding-top: 1.5rem;
-}
-.extra-button {
-  background-color: #fff;
-  color: var(--primary-purple);
-  border: 1px solid var(--primary-purple);
-  width: auto;
-  padding: 0.75rem 1.5rem;
-  display: inline-flex;
-  align-items: center;
-}
-.extra-button:hover {
-  background-color: #f9fafb;
-}
+.extra-actions { margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; }
+.extra-button { background-color: #fff; color: var(--primary-purple); border: 1px solid var(--primary-purple); width: auto; padding: 0.75rem 1.5rem; }
+.extra-button:hover { background-color: #f3e8ff; }
 
-/* --- Painel Admin --- */
-.admin-content { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; text-align: left; }
+/* --- Painel do Administrador --- */
+.admin-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.admin-toolbar .action-link-button, .admin-toolbar button { width: auto; flex-grow: 1; }
+.admin-toolbar .export { background-color: #059669; }
+.admin-toolbar .export:hover { background-color: #047857; }
+
+.admin-content { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2.5rem; text-align: left; }
+.form-section { padding: 1.5rem; background-color: #f9fafb; border-radius: 8px; }
 .user-form input, .user-form select { margin-bottom: 1rem; }
-.user-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
-.user-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #E5E7EB; }
+.form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.cancel-button { background-color: var(--secondary-gray); }
+.cancel-button:hover { background-color: var(--secondary-gray-hover); }
+
+.list-section { min-height: 420px; } /* Evita que a tela "pule" ao filtrar */
+.search-bar { display: flex; align-items: center; margin-bottom: 1rem; border: 1px solid #D1D5DB; border-radius: 8px; padding: 0 0.5rem; }
+.search-icon { color: #9CA3AF; margin-right: 0.5rem; }
+.search-bar input { border: none !important; box-shadow: none !important; padding-left: 0; }
+
+.user-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+.user-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
 .user-list li:last-child { border-bottom: none; }
-.role-tag { padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; color: white; }
+.user-list li:hover { background-color: #f3e8ff; }
+.user-list li .user-actions { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
+.user-list li:hover .user-actions { visibility: visible; opacity: 1; }
+.user-actions { display: flex; gap: 0.5rem; }
+.icon-button { background: none; border: none; color: var(--secondary-gray); width: auto; padding: 0.5rem; border-radius: 50%; }
+.icon-button:hover { color: var(--primary-purple); background: #e9d5ff; }
+.icon-button.delete:hover { color: var(--tag-admin); background: #fee2e2; }
+
+.role-tag { padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: white; }
 .role-tag.admin { background-color: var(--tag-admin); }
 .role-tag.funcionario { background-color: var(--tag-funcionario); }
-.user-form input, .user-form select { margin-bottom: 1rem; }
+.role-tag.entrada, .role-tag.volta_almoco { background-color: #2563EB; }
+.role-tag.saida, .role-tag.saida_almoco { background-color: #D97706; }
+
+
+/* --- Tabela de Registros (Admin) --- */
+.filters-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; align-items: center; }
+.filters-toolbar select, .filters-toolbar input { width: auto; flex-grow: 1; }
+.filters-toolbar button { width: auto; }
+
+.manual-entry { border: 1px dashed var(--primary-purple); }
+.manual-entry form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; align-items: end; }
+.manual-entry button { grid-column: 1 / -1; } /* Faz o botão ocupar a linha toda */
+
+.records-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.records-table th, .records-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+.records-table th { background-color: #f9fafb; font-size: 0.9rem; color: var(--secondary-gray); }
+.record-actions { text-align: center; }
+
+/* --- Media Query para Telas Pequenas --- */
 @media (max-width: 768px) {
     .admin-content { grid-template-columns: 1fr; }
-}
-
-/* NOVO: Estilos para os botões do formulário de criação */
-.form-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.cancel-button {
-  background-color: var(--secondary-gray);
-}
-.cancel-button:hover {
-  background-color: var(--secondary-gray-hover);
-}
-
-.create-user-button {
-  background-color: var(--success-green);
-}
-.create-user-button:hover {
-  background-color: #059669; /* Um verde um pouco mais escuro */
-}
-
-/* ... (muitos novos estilos aqui para suportar o layout) ... */
-.admin-toolbar {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-.admin-toolbar .action-link-button, .admin-toolbar .export-button {
-    width: auto;
-    flex-grow: 1;
-}
-/* Estilos para a lista de usuários interativa */
-.user-list li {
-    /* ... */
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.user-list li:hover, .user-list li.active {
-    background-color: #f9fafb; /* Cor de hover sutil */
-}
-.user-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-.icon-button {
-    background: none;
-    border: none;
-    color: var(--secondary-gray);
-    width: auto;
-    padding: 0.5rem;
-}
-.icon-button:hover {
-    color: var(--primary-purple);
-    background: #f0f2f7;
-}
-.icon-button.delete:hover {
-    color: var(--tag-admin);
+    .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .admin-toolbar { flex-direction: column; }
 }
