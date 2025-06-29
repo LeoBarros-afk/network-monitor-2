@@ -1,8 +1,3 @@
-/*
-  Arquivo de Estilo Completo para a Aplicação de Ponto
-  Tema: Roxo Leve
-*/
-
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -10,20 +5,27 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f4f2f7; /* Um fundo roxo bem claro, quase branco */
+  background-color: #f7f8fc; /* Fundo ligeiramente azulado/cinza */
 }
 
-/* Define as variáveis de cor do nosso tema */
+/* Nova paleta de cores */
 :root {
-  --primary-purple: #6D28D9;
-  --primary-purple-hover: #5B21B6;
-  --secondary-gray: #4B5563;
-  --secondary-gray-hover: #374151;
-  --tag-admin: #DC2626;
-  --tag-funcionario: #6B7280;
-  --success-green: #10B981;
-  --warn-orange: #F59E0B;
-  --border-color: #E5E7EB;
+  --theme-color: #5465FF;
+  --theme-color-hover: #4352cc;
+  --subtheme-color: #93E1D8;
+  --subtheme-color-text: #0d5c52;
+  --hover-color: #BAACBD;
+  --confirm-color: #93E1D8;
+  --confirm-color-hover: #7acbbd;
+  --registro-base-color: #D0E562;
+  --registro-color-1: #d0e562; /* Entrada */
+  --registro-color-2: #c1d15a; /* Saída Almoço */
+  --registro-color-3: #b2be52; /* Volta Almoço */
+  --registro-color-4: #a3ab4b; /* Saída */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --delete-color: #EF4444;
 }
 
 .App {
@@ -40,7 +42,7 @@ body {
   padding: 2.5rem;
   background-color: white;
   border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
   width: 100%;
   max-width: 450px;
   text-align: center;
@@ -50,17 +52,16 @@ body {
 .admin-container { max-width: 1024px; }
 .admin-container.large { max-width: 1280px; }
 
-
 /* --- Títulos --- */
-h1, h2, h3 { color: #111827; }
+h1, h2, h3 { color: var(--text-primary); }
 h1 { margin-top: 0; margin-bottom: 2rem; }
 h2 { margin: 0; }
 h3 { margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; font-size: 1.25rem; text-align: left; }
 
 /* --- Formulários --- */
 .form-group { margin-bottom: 1rem; text-align: left; }
-.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--secondary-gray); }
-input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="time"], select {
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-secondary); }
+input, select {
   width: 100%;
   padding: 0.8rem 1rem;
   font-size: 1rem;
@@ -70,10 +71,11 @@ input[type="text"], input[type="password"], input[type="number"], input[type="da
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 input:focus, select:focus {
-  border-color: var(--primary-purple);
-  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.2);
+  border-color: var(--theme-color);
+  box-shadow: 0 0 0 3px rgba(84, 101, 255, 0.2);
   outline: none;
 }
+.form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
 
 /* --- Botões --- */
 button {
@@ -81,7 +83,7 @@ button {
   font-size: 1rem;
   font-weight: bold;
   color: white;
-  background-color: var(--primary-purple);
+  background-color: var(--theme-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -91,46 +93,41 @@ button {
   align-items: center;
   gap: 0.5rem;
 }
-button:hover:not(:disabled) { background-color: var(--primary-purple-hover); }
+button:hover:not(:disabled) { background-color: var(--theme-color-hover); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.logout-button { width: auto; padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: var(--secondary-gray); }
-.logout-button:hover { background-color: var(--secondary-gray-hover); }
+.logout-button { width: auto; padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: var(--text-secondary); }
+.logout-button:hover { background-color: var(--hover-color); color: #fff; }
+.cancel-button { background-color: var(--secondary-gray); }
+.cancel-button:hover { background-color: var(--secondary-gray-hover); }
 
 /* --- Cabeçalho dos Painéis --- */
 .dashboard-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }
 .dashboard-header h2 { font-size: 1.5rem; }
-.current-date { margin: 4px 0 0 0; font-size: 0.9rem; color: var(--secondary-gray); text-align: left; }
+.current-date { margin: 4px 0 0 0; font-size: 0.9rem; color: var(--text-secondary); text-align: left; }
 
 /* --- Painel do Funcionário --- */
 .actions-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .action-button { padding: 1.5rem; font-size: 1.1rem; height: 80px; }
-.action-button:disabled { background-color: var(--success-green) !important; }
-.action-button.entrada { background-color: #2563EB; }
-.action-button.entrada:hover:not(:disabled) { background-color: #1D4ED8; }
-.action-button.saida { background-color: #DC2626; }
-.action-button.saida:hover:not(:disabled) { background-color: #B91C1C; }
-.action-button.almoco { background-color: #D97706; }
-.action-button.almoco:hover:not(:disabled) { background-color: #B45309; }
-
+.action-button:disabled { background-color: var(--confirm-color) !important; color: var(--subtheme-color-text) !important; opacity: 0.7; }
+.action-button.entrada { background-color: var(--registro-color-1); color: var(--text-primary); }
+.action-button.saida_almoco { background-color: var(--registro-color-2); color: var(--text-primary); }
+.action-button.volta_almoco { background-color: var(--registro-color-3); color: var(--text-primary); }
+.action-button.saida { background-color: var(--registro-color-4); color: var(--text-primary); }
 .extra-actions { margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; }
-.extra-button { background-color: #fff; color: var(--primary-purple); border: 1px solid var(--primary-purple); width: auto; padding: 0.75rem 1.5rem; }
-.extra-button:hover { background-color: #f3e8ff; }
+.extra-button { background-color: #fff; color: var(--theme-color); border: 1px solid var(--theme-color); width: auto; padding: 0.75rem 1.5rem; }
+.extra-button:hover { background-color: #f0f2f7; }
 
 /* --- Painel do Administrador --- */
 .admin-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
-.admin-toolbar .action-link-button, .admin-toolbar button { width: auto; flex-grow: 1; }
-.admin-toolbar .export { background-color: #059669; }
-.admin-toolbar .export:hover { background-color: #047857; }
+.admin-toolbar button, .admin-toolbar .action-link-button { width: auto; flex-grow: 1; text-decoration: none; }
+.admin-toolbar .create-user-button, .admin-toolbar .manual-button { background-color: var(--theme-color); }
+.admin-toolbar .action-link-button { background-color: var(--subtheme-color); color: var(--subtheme-color-text); }
+.admin-toolbar .action-link-button:hover { background-color: var(--hover-color); color: var(--text-primary); }
+.admin-toolbar .export-button { background-color: #10B981; }
 
-.admin-content { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2.5rem; text-align: left; }
-.form-section { padding: 1.5rem; background-color: #f9fafb; border-radius: 8px; }
-.user-form input, .user-form select { margin-bottom: 1rem; }
-.form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
-.cancel-button { background-color: var(--secondary-gray); }
-.cancel-button:hover { background-color: var(--secondary-gray-hover); }
-
-.list-section { min-height: 420px; } /* Evita que a tela "pule" ao filtrar */
+.admin-content { display: grid; grid-template-columns: 1fr 2fr; gap: 2.5rem; text-align: left; margin-top: 2rem;}
+.list-section { min-height: 420px; /* Evita que a tela "pule" ao filtrar */ }
 .search-bar { display: flex; align-items: center; margin-bottom: 1rem; border: 1px solid #D1D5DB; border-radius: 8px; padding: 0 0.5rem; }
 .search-icon { color: #9CA3AF; margin-right: 0.5rem; }
 .search-bar input { border: none !important; box-shadow: none !important; padding-left: 0; }
@@ -138,38 +135,47 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .user-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
 .user-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
 .user-list li:last-child { border-bottom: none; }
-.user-list li:hover { background-color: #f3e8ff; }
+.user-list li:hover { background-color: var(--hover-color); color: #fff; }
 .user-list li .user-actions { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
 .user-list li:hover .user-actions { visibility: visible; opacity: 1; }
 .user-actions { display: flex; gap: 0.5rem; }
-.icon-button { background: none; border: none; color: var(--secondary-gray); width: auto; padding: 0.5rem; border-radius: 50%; }
-.icon-button:hover { color: var(--primary-purple); background: #e9d5ff; }
-.icon-button.delete:hover { color: var(--tag-admin); background: #fee2e2; }
+.icon-button { background: none; border: none; color: var(--text-secondary); width: auto; padding: 0.5rem; border-radius: 50%; }
+.user-list li:hover .icon-button { color: var(--text-primary); }
+.icon-button:hover { color: var(--theme-color); background: rgba(84, 101, 255, 0.1); }
+.icon-button.delete:hover { color: var(--delete-color); background: rgba(239, 68, 68, 0.1); }
 
 .role-tag { padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; color: white; }
-.role-tag.admin { background-color: var(--tag-admin); }
-.role-tag.funcionario { background-color: var(--tag-funcionario); }
-.role-tag.entrada, .role-tag.volta_almoco { background-color: #2563EB; }
-.role-tag.saida, .role-tag.saida_almoco { background-color: #D97706; }
-
+.role-tag.admin { background-color: var(--delete-color); }
+.role-tag.funcionario { background-color: var(--text-secondary); }
 
 /* --- Tabela de Registros (Admin) --- */
 .filters-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; align-items: center; }
 .filters-toolbar select, .filters-toolbar input { width: auto; flex-grow: 1; }
-.filters-toolbar button { width: auto; }
+.filters-toolbar .search-button { background-color: var(--subtheme-color); color: var(--subtheme-color-text); }
+.filters-toolbar .manual-button { background-color: var(--warn-orange); }
 
-.manual-entry { border: 1px dashed var(--primary-purple); }
+.manual-entry { border: 1px dashed var(--hover-color); padding: 1.5rem; margin-bottom: 2rem; border-radius: 8px; }
 .manual-entry form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; align-items: end; }
-.manual-entry button { grid-column: 1 / -1; } /* Faz o botão ocupar a linha toda */
+.manual-entry label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+.manual-entry .full-width-button { grid-column: 1 / -1; }
 
-.records-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.records-table table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
 .records-table th, .records-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
-.records-table th { background-color: #f9fafb; font-size: 0.9rem; color: var(--secondary-gray); }
+.records-table th { background-color: #f9fafb; font-size: 0.9rem; color: var(--text-secondary); }
 .record-actions { text-align: center; }
+.role-tag.tipo-entrada, .role-tag.tipo-volta_almoco { background-color: var(--registro-color-1); color: var(--text-primary); }
+.role-tag.tipo-saida, .role-tag.tipo-saida_almoco { background-color: var(--warn-orange); color: var(--text-primary); }
 
-/* --- Media Query para Telas Pequenas --- */
+
+/* --- Media Queries para Responsividade --- */
+@media (max-width: 900px) {
+    .admin-content {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
-    .admin-content { grid-template-columns: 1fr; }
     .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
     .admin-toolbar { flex-direction: column; }
+    .filters-toolbar { flex-direction: column; align-items: stretch; }
 }
