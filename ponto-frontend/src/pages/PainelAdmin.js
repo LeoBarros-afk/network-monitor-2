@@ -18,6 +18,7 @@ const PainelAdmin = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
 
+    // Estados para o formulário de criação/edição
     const [isEditing, setIsEditing] = useState(false);
     const [currentUserId, setCurrentUserId] = useState(null);
     const [nomeCompleto, setNomeCompleto] = useState('');
@@ -39,15 +40,101 @@ const PainelAdmin = () => {
 
     useEffect(() => { fetchUsuarios(); }, []);
 
-    const handleLogout = () => { /* ... (código inalterado) ... */ };
-    const resetForm = () => { /* ... (código inalterado) ... */ };
-    const handleEditClick = (user) => { /* ... (código inalterado) ... */ };
-    const submitForm = async () => { /* ... (código inalterado) ... */ };
-    const handleFormSubmit = (e) => { /* ... (código inalterado) ... */ };
-    const handleDeleteUser = (user) => { /* ... (código inalterado) ... */ };
+    const handleLogout = () => {
+        localStorage.removeItem('user_token');
+        localStorage.removeItem('user_role');
+        navigate('/');
+    };
+
+    const resetForm = () => {
+        setIsEditing(false);
+        setCurrentUserId(null);
+        setNomeCompleto('');
+        setUsername('');
+        setPassword('');
+        setRole('funcionario');
+        setShowCreateForm(false);
+    };
+
+    const handleEditClick = (user) => {
+        setIsEditing(true);
+        setCurrentUserId(user.id);
+        setNomeCompleto(user.nome_completo);
+        setUsername(user.username);
+        setRole(user.role);
+        setPassword('');
+        setShowCreateForm(true);
+    };
+    
+    const submitForm = async () => {
+        const url = isEditing ? `/api/admin/usuarios/${currentUserId}` : '/api/admin/usuarios';
+        const method = isEditing ? 'put' : 'post';
+        const data = { nome_completo: nomeCompleto, username, role };
+        if (password) {
+            data.password = password;
+        }
+
+        try {
+            const response = await api[method](url, data);
+            Swal.fire('Sucesso!', response.data.msg, 'success');
+            resetForm();
+            fetchUsuarios();
+        } catch (error) {
+            Swal.fire('Erro!', error.response?.data?.msg || 'Operação falhou.', 'error');
+        }
+    };
+
+    const handleFormSubmit = (e) => {
+        e.preventDefault();
+        if (!isEditing && !password) {
+            Swal.fire('Atenção!', 'O campo de senha é obrigatório para criar um novo usuário.', 'warning');
+            return;
+        }
+
+        const userData = isEditing ? 
+            `<b>Nome:</b> ${nomeCompleto}<br/><b>Username:</b> ${username}<br/><b>Permissão:</b> ${role}<br/><i>(A senha só será alterada se o campo foi preenchido)</i>` :
+            `<b>Nome:</b> ${nomeCompleto}<br/><b>Username:</b> ${username}<br/><b>Permissão:</b> ${role}`;
+
+        Swal.fire({
+            title: isEditing ? 'Confirmar Alteração' : 'Confirmar Criação',
+            html: `<div style="text-align: left; padding-left: 1rem;">${userData}</div>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: 'var(--confirm-color)',
+            cancelButtonColor: 'var(--delete-color)',
+            confirmButtonText: isEditing ? 'Salvar Alterações' : 'Criar Usuário',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                submitForm();
+            }
+        });
+    };
+    
+    const handleDeleteUser = (user) => {
+        Swal.fire({
+            title: 'Você tem certeza?',
+            text: `Isso irá deletar permanentemente o usuário "${user.nome_completo}". Esta ação não pode ser desfeita!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: 'var(--delete-color)',
+            cancelButtonColor: 'var(--secondary-gray)',
+            confirmButtonText: 'Sim, deletar!',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await api.delete(`/api/admin/usuarios/${user.id}`);
+                    Swal.fire('Deletado!', response.data.msg, 'success');
+                    fetchUsuarios();
+                } catch (error) {
+                    Swal.fire('Erro!', 'Não foi possível deletar o usuário.', 'error');
+                }
+            }
+        });
+    };
     
     const handleExport = async () => {
-        // Gera o HTML para o dropdown de usuários
         const userOptions = usuarios.map(u => `<option value="${u.id}">${u.nome_completo}</option>`).join('');
         
         const { value: formValues } = await Swal.fire({
@@ -100,7 +187,6 @@ const PainelAdmin = () => {
     return (
         <div className="App">
             <div className="admin-container">
-                {/* ... (resto do JSX inalterado) ... */}
                 <header className="dashboard-header">
                     <h2>Painel do Administrador</h2>
                     <button onClick={handleLogout} className="logout-button">Sair</button>

@@ -53,9 +53,9 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
 
+    # --- ROTAS DE FUNCIONÁRIO ---
     @app.route('/api/login', methods=['POST'])
     def login():
-        # ... (código inalterado) ...
         username = request.json.get('username', None)
         password = request.json.get('password', None)
         user = Usuario.query.filter_by(username=username).first()
@@ -68,7 +68,6 @@ def create_app():
     @app.route('/api/me/hoje', methods=['GET'])
     @jwt_required()
     def get_user_and_today_records():
-        # ... (código inalterado) ...
         current_user_id = get_jwt_identity()
         user = Usuario.query.get(int(current_user_id))
         today_start = datetime.combine(date.today(), datetime.min.time())
@@ -80,7 +79,6 @@ def create_app():
     @app.route('/api/ponto/registrar', methods=['POST'])
     @jwt_required()
     def registrar_ponto():
-        # ... (código inalterado) ...
         tipo = request.json.get('tipo', None)
         tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
         if not tipo or tipo not in tipos_validos: return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
@@ -89,12 +87,30 @@ def create_app():
         db.session.add(novo_registro)
         db.session.commit()
         return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
+    
+    @app.route('/api/me/registros', methods=['GET'])
+    @jwt_required()
+    def get_my_records():
+        current_user_id = get_jwt_identity()
+        mes = request.args.get('mes', type=int)
+        ano = request.args.get('ano', type=int)
+
+        if not mes or not ano:
+            return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
+
+        query = RegistroPonto.query.filter_by(usuario_id=int(current_user_id)).filter(
+            extract('month', RegistroPonto.timestamp) == mes,
+            extract('year', RegistroPonto.timestamp) == ano
+        ).order_by(RegistroPonto.timestamp.asc())
+        
+        registros = query.all()
+        return jsonify([{"id": r.id, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro} for r in registros])
+
 
     # --- ROTAS DE ADMINISTRAÇÃO ---
     @app.route('/api/admin/usuarios', methods=['GET', 'POST'])
     @admin_required()
     def gerenciar_usuarios():
-        # ... (código inalterado) ...
         if request.method == 'GET':
             usuarios = Usuario.query.order_by(Usuario.nome_completo).all()
             return jsonify([{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios])
@@ -111,7 +127,6 @@ def create_app():
     @app.route('/api/admin/usuarios/<int:usuario_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_usuario_especifico(usuario_id):
-        # ... (código inalterado) ...
         user = Usuario.query.get_or_404(usuario_id)
         if request.method == 'PUT':
             dados = request.json
@@ -131,7 +146,6 @@ def create_app():
     @admin_required()
     def gerenciar_registros():
         if request.method == 'GET':
-            # AJUSTE: Ordena os registros por timestamp ascendente (do mais antigo para o mais novo).
             usuario_id = request.args.get('usuario_id', type=int)
             mes = request.args.get('mes', type=int)
             ano = request.args.get('ano', type=int)
@@ -143,9 +157,7 @@ def create_app():
             if dia: query = query.filter(extract('day', RegistroPonto.timestamp) == dia)
             registros = query.all()
             return jsonify([{"id": r.id, "usuario_id": r.usuario_id, "nome_usuario": r.usuario.nome_completo, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro, "justificativa": r.justificativa} for r in registros])
-
         if request.method == 'POST':
-            # ... (código inalterado) ...
             dados = request.json
             usuario_id = dados.get('usuario_id')
             data_str = dados.get('data')
@@ -164,7 +176,6 @@ def create_app():
     @app.route('/api/admin/registros/<int:registro_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_registro_especifico(registro_id):
-        # ... (código inalterado) ...
         registro = RegistroPonto.query.get_or_404(registro_id)
         if request.method == 'PUT':
             dados = request.json
@@ -177,25 +188,19 @@ def create_app():
             db.session.delete(registro)
             db.session.commit()
             return jsonify({"msg": "Registro deletado com sucesso!"})
-
+    
     @app.route('/api/admin/relatorio', methods=['GET'])
     @admin_required()
     def gerar_relatorio():
-        # AJUSTE: Adiciona filtro opcional por funcionário.
         ano = request.args.get('ano', type=int)
         mes = request.args.get('mes', type=int)
         usuario_id = request.args.get('usuario_id', type=int)
-
         if not ano or not mes: return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
-        
         query = RegistroPonto.query.join(Usuario).filter(extract('year', RegistroPonto.timestamp) == ano, extract('month', RegistroPonto.timestamp) == mes)
         if usuario_id:
             query = query.filter(RegistroPonto.usuario_id == usuario_id)
-
         registros = query.order_by(Usuario.nome_completo, RegistroPonto.timestamp).all()
-        
         if not registros: return jsonify({"msg": "Nenhum registro encontrado para este período."}), 404
-        
         dados_para_excel = [{'ID Registro': r.id, 'Funcionário': r.usuario.nome_completo, 'Username': r.usuario.username, 'Data e Hora': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'), 'Tipo': r.tipo_registro, 'Justificativa': r.justificativa} for r in registros]
         df = pd.DataFrame(dados_para_excel)
         output = io.BytesIO()

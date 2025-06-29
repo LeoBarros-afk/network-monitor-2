@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { FaCheckCircle, FaCalendarAlt } from 'react-icons/fa'; // Importa o ícone de calendário
-import { useNavigate } from 'react-router-dom';
+import { FaCheckCircle, FaCalendarAlt } from 'react-icons/fa';
+import { useNavigate, Link } from 'react-router-dom';
 
-// Configuração do Axios para enviar o token automaticamente
 const api = axios.create();
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('user_token');
@@ -14,13 +13,11 @@ api.interceptors.request.use((config) => {
   return config;
 }, (error) => Promise.reject(error));
 
-
 const PainelFuncionario = () => {
   const [userData, setUserData] = useState(null);
   const [registrosDoDia, setRegistrosDoDia] = useState([]);
   const navigate = useNavigate();
 
-  // Função para formatar a data atual
   const getCurrentDate = () => {
     return new Date().toLocaleDateString('pt-BR', {
       weekday: 'long',
@@ -55,13 +52,12 @@ const PainelFuncionario = () => {
       const response = await api.post('/api/ponto/registrar', { tipo });
       setRegistrosDoDia([...registrosDoDia, tipo]);
 
-      // Verifica se é o último ponto do dia para a mensagem especial
       if (tipo === 'saida') {
         Swal.fire({
           title: 'Até logo!',
           text: 'Obrigado por mais um dia de trabalho. Seu ponto foi encerrado!',
           icon: 'success',
-          timer: 2500, // Um pouco mais de tempo para a mensagem de despedida
+          timer: 2500,
           showConfirmButton: false,
         });
       } else {
@@ -69,7 +65,7 @@ const PainelFuncionario = () => {
           title: 'Sucesso!',
           text: response.data.msg,
           icon: 'success',
-          timer: 1500, // Animação mais rápida
+          timer: 1500,
           showConfirmButton: false,
         });
       }
@@ -115,12 +111,11 @@ const PainelFuncionario = () => {
             </button>
           ))}
         </div>
-        {/* Futura Tabela de Registros */}
         <div className="extra-actions">
-          <button className="extra-button">
+          <Link to="/meus-registros" className="extra-button">
             <FaCalendarAlt style={{ marginRight: '8px' }} />
             Meus Registros do Mês
-          </button>
+          </Link>
         </div>
       </div>
     </div>
