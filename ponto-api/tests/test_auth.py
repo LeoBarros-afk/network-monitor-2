@@ -2,7 +2,8 @@ import json
 
 def test_login_sucesso(test_client):
     """Testa se o login funciona com credenciais corretas."""
-    response = test_client.post('/api/login',
+    # AJUSTE: Removido o prefixo /api/ da rota
+    response = test_client.post('/login',
                                  data=json.dumps({'username': 'testadmin', 'password': 'senha_admin'}),
                                  content_type='application/json')
     assert response.status_code == 200
@@ -12,7 +13,8 @@ def test_login_sucesso(test_client):
 
 def test_login_falha(test_client):
     """Testa se o login falha com senha incorreta."""
-    response = test_client.post('/api/login',
+    # AJUSTE: Removido o prefixo /api/ da rota
+    response = test_client.post('/login',
                                  data=json.dumps({'username': 'testadmin', 'password': 'senha_errada'}),
                                  content_type='application/json')
     assert response.status_code == 401
@@ -22,11 +24,12 @@ def test_login_falha(test_client):
 def test_criar_usuario_admin(test_client):
     """Testa se um admin pode criar um novo usuário."""
     # Primeiro, faz login como admin para pegar o token
-    login_res = test_client.post('/api/login', data=json.dumps({'username': 'testadmin', 'password': 'senha_admin'}), content_type='application/json')
+    login_res = test_client.post('/login', data=json.dumps({'username': 'testadmin', 'password': 'senha_admin'}), content_type='application/json')
     token = json.loads(login_res.data)['access_token']
 
     # Tenta criar um novo usuário usando o token
-    response = test_client.post('/api/admin/usuarios',
+    # AJUSTE: Removido o prefixo /api/ da rota
+    response = test_client.post('/admin/usuarios',
                                  headers={'Authorization': f'Bearer {token}'},
                                  data=json.dumps({
                                      'nome_completo': 'Novo Funcionario',
@@ -36,7 +39,5 @@ def test_criar_usuario_admin(test_client):
                                  }),
                                  content_type='application/json')
     assert response.status_code == 201
-    
-    # AJUSTE: Agora verificamos a mensagem dentro do JSON, que é a forma correta.
     data = json.loads(response.data)
     assert data['msg'] == 'Usuário criado com sucesso!'
