@@ -34,6 +34,10 @@ const MeusRegistros = () => {
         fetchMeusRegistros();
     }, []);
 
+    const handleSearch = () => {
+        fetchMeusRegistros();
+    };
+
     return (
         <div className="App">
             <div className="admin-container large">
@@ -43,9 +47,9 @@ const MeusRegistros = () => {
                 </header>
 
                 <div className="filters-toolbar">
-                    <input type="number" value={mes} onChange={e => setMes(e.target.value)} placeholder="Mês"/>
-                    <input type="number" value={ano} onChange={e => setAno(e.target.value)} placeholder="Ano"/>
-                    <button onClick={fetchMeusRegistros} className="search-button"><FaSearch/> Buscar</button>
+                    <input type="number" value={mes} onChange={e => setMes(e.target.value)} placeholder="Mês (1-12)"/>
+                    <input type="number" value={ano} onChange={e => setAno(e.target.value)} placeholder="Ano (YYYY)"/>
+                    <button onClick={handleSearch} className="search-button"><FaSearch/> Buscar</button>
                 </div>
 
                 <div className="records-table">

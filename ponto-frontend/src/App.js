@@ -20,6 +20,7 @@ function App() {
           </ProtectedRoute>
         } 
       />
+      {/* ROTA PARA O FUNCIONÁRIO VER SEUS REGISTROS */}
       <Route 
         path="/meus-registros" 
         element={
