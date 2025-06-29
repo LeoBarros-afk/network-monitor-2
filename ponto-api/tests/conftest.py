@@ -10,7 +10,6 @@ def test_app():
     with app.app_context():
         db.create_all()
         
-        # Cria usuários de teste
         hashed_password_admin = bcrypt.generate_password_hash('senha_admin').decode('utf-8')
         admin = Usuario(nome_completo='Admin de Teste', username='testadmin', password_hash=hashed_password_admin, role='admin')
         
@@ -23,6 +22,7 @@ def test_app():
 
         yield app
 
+        db.session.remove()
         db.drop_all()
 
 @pytest.fixture(scope='module')

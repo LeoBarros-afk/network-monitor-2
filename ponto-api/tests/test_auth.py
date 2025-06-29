@@ -8,6 +8,7 @@ def test_login_sucesso(test_client):
     assert response.status_code == 200
     data = json.loads(response.data)
     assert 'access_token' in data
+    assert data['role'] == 'admin'
 
 def test_login_falha(test_client):
     """Testa se o login falha com senha incorreta."""
@@ -35,4 +36,7 @@ def test_criar_usuario_admin(test_client):
                                  }),
                                  content_type='application/json')
     assert response.status_code == 201
-    assert b'Usuario criado com sucesso!' in response.data
+    
+    # AJUSTE: Agora verificamos a mensagem dentro do JSON, que é a forma correta.
+    data = json.loads(response.data)
+    assert data['msg'] == 'Usuário criado com sucesso!'

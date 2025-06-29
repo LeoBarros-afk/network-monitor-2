@@ -10,7 +10,8 @@ def test_registrar_ponto_sucesso(test_client):
                                  data=json.dumps({'tipo': 'entrada'}),
                                  content_type='application/json')
     assert response.status_code == 201
-    assert b"Ponto de 'entrada' registrado com sucesso!" in response.data
+    data = json.loads(response.data)
+    assert data['msg'] == "Ponto de 'entrada' registrado com sucesso!"
 
 def test_acesso_admin_negado_para_funcionario(test_client):
     """Testa se um funcionário não pode acessar uma rota de admin."""
@@ -20,4 +21,5 @@ def test_acesso_admin_negado_para_funcionario(test_client):
     response = test_client.get('/api/admin/usuarios',
                                headers={'Authorization': f'Bearer {token}'})
     assert response.status_code == 403
-    assert b"Acesso restrito a administradores!" in response.data
+    data = json.loads(response.data)
+    assert data['msg'] == "Acesso restrito a administradores!"
