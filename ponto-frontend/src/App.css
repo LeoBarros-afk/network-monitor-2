@@ -238,6 +238,16 @@ input:focus, select:focus {
   background-color: var(--delete-color-hover) !important;
 }
 
+/* --- Estilos Gerais --- */
+/* ... */
+.message {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  /* AJUSTE: Usando a variável de cor de exclusão/erro para consistência */
+  color: var(--delete-color);
+}
+
+
 /* --- Media Queries para Responsividade --- */
 @media (max-width: 900px) {
     .admin-content {
