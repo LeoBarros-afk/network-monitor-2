@@ -1,3 +1,6 @@
+# Arquivo: ponto-api/app.py
+# Esta é a versão final e completa da API, incluindo a integração com o Telegram.
+
 import os
 import io
 import pandas as pd
@@ -9,15 +12,20 @@ from datetime import datetime, date, timezone, timedelta
 from functools import wraps
 from sqlalchemy import extract
 
-# Importa as configurações que criamos
+# Importa as configurações
 from config import DevelopmentConfig
 
-# As extensões são inicializadas aqui, fora da função, para serem globais.
+# Importações do Telegram
+import telegram
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import Dispatcher, MessageHandler, Filters, CommandHandler, CallbackContext
+
+# --- Inicialização das Extensões ---
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 jwt = JWTManager()
 
-# Define nosso fuso horário de -3 horas para consistência
+# --- Constantes ---
 BR_TIMEZONE = timezone(timedelta(hours=-3))
 
 # --- Modelos do Banco de Dados ---
@@ -28,6 +36,7 @@ class Usuario(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='funcionario')
+    telegram_chat_id = db.Column(db.String(50), unique=True, nullable=True)
     registros = db.relationship('RegistroPonto', backref='usuario', lazy=True, cascade="all, delete-orphan")
 
 class RegistroPonto(db.Model):
@@ -37,7 +46,6 @@ class RegistroPonto(db.Model):
     timestamp = db.Column(db.DateTime(timezone=True), nullable=False)
     tipo_registro = db.Column(db.String(20), nullable=False)
     justificativa = db.Column(db.Text, nullable=True)
-
 
 # --- Decorador de Admin ---
 def admin_required():
@@ -53,20 +61,87 @@ def admin_required():
         return decorator
     return wrapper
 
+# --- LÓGICA DO BOT DO TELEGRAM ---
+user_states = {} # Dicionário para guardar o estado da conversa de cada usuário
+
+def start(update: Update, context: CallbackContext):
+    chat_id = update.message.chat_id
+    user = Usuario.query.filter_by(telegram_chat_id=str(chat_id)).first()
+    if user:
+        reply_markup = ReplyKeyboardMarkup([['Registrar Entrada'], ['Sair para Almoço', 'Voltar do Almoço'], ['Encerrar Expediente']], resize_keyboard=True)
+        update.message.reply_text(f'Olá, {user.nome_completo}! Você já está conectado. Use os botões para registrar seu ponto.', reply_markup=reply_markup)
+    else:
+        update.message.reply_text('Bem-vindo ao Sistema de Ponto! Para vincular sua conta, por favor, envie seu nome de usuário (username) do sistema.')
+        user_states[chat_id] = 'awaiting_username'
+
+def handle_telegram_message(update: Update, context: CallbackContext):
+    chat_id = update.message.chat_id
+    text = update.message.text
+    state = user_states.get(chat_id)
+
+    if state == 'awaiting_username':
+        user_states[chat_id] = {'state': 'awaiting_password', 'username': text}
+        update.message.reply_text('Obrigado. Agora, por favor, envie sua senha.')
+        return
+
+    if state and state.get('state') == 'awaiting_password':
+        username = state['username']
+        password = text
+        
+        user = Usuario.query.filter_by(username=username).first()
+        if user and bcrypt.check_password_hash(user.password_hash, password):
+            user.telegram_chat_id = str(chat_id)
+            db.session.commit()
+            reply_markup = ReplyKeyboardMarkup([['Registrar Entrada'], ['Sair para Almoço', 'Voltar do Almoço'], ['Encerrar Expediente']], resize_keyboard=True)
+            update.message.reply_text(f'Conta vinculada com sucesso, {user.nome_completo}! Use os botões abaixo para registrar seu ponto.', reply_markup=reply_markup)
+            del user_states[chat_id]
+        else:
+            update.message.reply_text('Usuário ou senha inválidos. Por favor, envie seu nome de usuário novamente para tentar de novo.')
+            user_states[chat_id] = 'awaiting_username'
+        return
+
+    user = Usuario.query.filter_by(telegram_chat_id=str(chat_id)).first()
+    if not user:
+        update.message.reply_text('Sua conta do Telegram não está vinculada. Envie /start para começar.')
+        return
+    
+    tipo_map = {'Registrar Entrada': 'entrada', 'Sair para Almoço': 'saida_almoco', 'Voltar do Almoço': 'volta_almoco', 'Encerrar Expediente': 'saida'}
+    tipo_registro = tipo_map.get(text)
+    
+    if tipo_registro:
+        novo_registro = RegistroPonto(usuario_id=user.id, tipo_registro=tipo_registro, timestamp=datetime.now(BR_TIMEZONE))
+        db.session.add(novo_registro)
+        db.session.commit()
+        update.message.reply_text(f"Ponto de '{tipo_registro.replace('_', ' ')}' registrado com sucesso!")
+    else:
+        update.message.reply_text('Comando não reconhecido. Por favor, use os botões do teclado.')
+
 
 # --- Função "Fábrica" que Cria a Aplicação ---
 def create_app(config_class=DevelopmentConfig):
     app = Flask(__name__)
-    # Carrega a configuração a partir do objeto
     app.config.from_object(config_class)
 
-    # Vincula as extensões à aplicação
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
 
-    # --- ROTAS DA API ---
+    # Configuração do bot do Telegram
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN_PONTO')
+    if bot_token:
+        bot = telegram.Bot(token=bot_token)
+        dispatcher = Dispatcher(bot, None, use_context=True, workers=0)
+        dispatcher.add_handler(CommandHandler('start', start))
+        dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_telegram_message))
     
+        @app.route('/telegram/webhook', methods=['POST'])
+        def telegram_webhook():
+            with app.app_context():
+                update = Update.de_json(request.get_json(force=True), bot)
+                dispatcher.process_update(update)
+            return jsonify(status="ok")
+    
+    # --- ROTAS DA API NORMAL (WEB) ---
     @app.route('/login', methods=['POST'])
     def login():
         username = request.json.get('username', None)
@@ -83,14 +158,9 @@ def create_app(config_class=DevelopmentConfig):
     def registrar_ponto():
         tipo = request.json.get('tipo', None)
         tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
-        if not tipo or tipo not in tipos_validos:
-            return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
+        if not tipo or tipo not in tipos_validos: return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
         current_user_id = get_jwt_identity()
-        novo_registro = RegistroPonto(
-            usuario_id=int(current_user_id),
-            tipo_registro=tipo,
-            timestamp=datetime.now(BR_TIMEZONE)
-        )
+        novo_registro = RegistroPonto(usuario_id=int(current_user_id), tipo_registro=tipo, timestamp=datetime.now(BR_TIMEZONE))
         db.session.add(novo_registro)
         db.session.commit()
         return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
@@ -100,14 +170,9 @@ def create_app(config_class=DevelopmentConfig):
     def get_user_and_today_records():
         current_user_id = get_jwt_identity()
         user = Usuario.query.get(int(current_user_id))
-        
         now_brt = datetime.now(BR_TIMEZONE)
         today_start = now_brt.replace(hour=0, minute=0, second=0, microsecond=0)
-        
-        registros_hoje = RegistroPonto.query.filter(
-            RegistroPonto.usuario_id == int(current_user_id),
-            RegistroPonto.timestamp >= today_start
-        ).all()
+        registros_hoje = RegistroPonto.query.filter(RegistroPonto.usuario_id == int(current_user_id), RegistroPonto.timestamp >= today_start).all()
         tipos_registrados = [r.tipo_registro for r in registros_hoje]
         user_data = { "id": user.id, "nome_completo": user.nome_completo, "registros_hoje": tipos_registrados }
         return jsonify(user_data)
@@ -118,12 +183,8 @@ def create_app(config_class=DevelopmentConfig):
         current_user_id = get_jwt_identity()
         mes = request.args.get('mes', type=int)
         ano = request.args.get('ano', type=int)
-        if not mes or not ano:
-            return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
-        query = RegistroPonto.query.filter_by(usuario_id=int(current_user_id)).filter(
-            extract('month', RegistroPonto.timestamp) == mes,
-            extract('year', RegistroPonto.timestamp) == ano
-        ).order_by(RegistroPonto.timestamp.asc())
+        if not mes or not ano: return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
+        query = RegistroPonto.query.filter_by(usuario_id=int(current_user_id)).filter(extract('month', RegistroPonto.timestamp) == mes, extract('year', RegistroPonto.timestamp) == ano).order_by(RegistroPonto.timestamp.asc())
         registros = query.all()
         return jsonify([{"id": r.id, "timestamp": r.timestamp.astimezone(BR_TIMEZONE).isoformat(), "tipo_registro": r.tipo_registro} for r in registros])
     
@@ -135,10 +196,8 @@ def create_app(config_class=DevelopmentConfig):
             return jsonify([{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios])
         if request.method == 'POST':
             dados = request.json
-            if not all([dados.get('username'), dados.get('password'), dados.get('nome_completo')]):
-                return jsonify({"msg": "Dados incompletos"}), 400
-            if Usuario.query.filter_by(username=dados['username']).first():
-                return jsonify({"msg": "Username já existe"}), 409
+            if not all([dados.get('username'), dados.get('password'), dados.get('nome_completo')]): return jsonify({"msg": "Dados incompletos"}), 400
+            if Usuario.query.filter_by(username=dados['username']).first(): return jsonify({"msg": "Username já existe"}), 409
             hashed_password = bcrypt.generate_password_hash(dados['password']).decode('utf-8')
             novo_usuario = Usuario(username=dados['username'], password_hash=hashed_password, nome_completo=dados['nome_completo'], role=dados.get('role', 'funcionario'))
             db.session.add(novo_usuario)
@@ -227,14 +286,7 @@ def create_app(config_class=DevelopmentConfig):
         dados_para_excel = []
         for r in registros:
             timestamp_local = r.timestamp.astimezone(BR_TIMEZONE)
-            dados_para_excel.append({
-                'ID Registro': r.id, 
-                'Funcionário': r.usuario.nome_completo, 
-                'Username': r.usuario.username, 
-                'Data e Hora': timestamp_local.strftime('%Y-%m-%d %H:%M:%S'), 
-                'Tipo': r.tipo_registro, 
-                'Justificativa': r.justificativa
-            })
+            dados_para_excel.append({'ID Registro': r.id, 'Funcionário': r.usuario.nome_completo, 'Username': r.usuario.username, 'Data e Hora': timestamp_local.strftime('%Y-%m-%d %H:%M:%S'), 'Tipo': r.tipo_registro, 'Justificativa': r.justificativa})
         df = pd.DataFrame(dados_para_excel)
         output = io.BytesIO()
         writer = pd.ExcelWriter(output, engine='openpyxl')
