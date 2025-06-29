@@ -158,3 +158,40 @@ button:hover:not(:disabled) { background-color: var(--primary-purple-hover); }
   background-color: #059669; /* Um verde um pouco mais escuro */
 }
 
+/* ... (muitos novos estilos aqui para suportar o layout) ... */
+.admin-toolbar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.admin-toolbar .action-link-button, .admin-toolbar .export-button {
+    width: auto;
+    flex-grow: 1;
+}
+/* Estilos para a lista de usuários interativa */
+.user-list li {
+    /* ... */
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.user-list li:hover, .user-list li.active {
+    background-color: #f9fafb; /* Cor de hover sutil */
+}
+.user-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+.icon-button {
+    background: none;
+    border: none;
+    color: var(--secondary-gray);
+    width: auto;
+    padding: 0.5rem;
+}
+.icon-button:hover {
+    color: var(--primary-purple);
+    background: #f0f2f7;
+}
+.icon-button.delete:hover {
+    color: var(--tag-admin);
+}
