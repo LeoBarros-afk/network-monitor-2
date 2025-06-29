@@ -1,3 +1,5 @@
+# Arquivo: ponto-api/app.py (Versão Completa e Funcional)
+
 import os
 import io
 import pandas as pd
@@ -9,23 +11,15 @@ from datetime import datetime, date
 from functools import wraps
 from sqlalchemy import extract
 
+# Importa as configurações que criamos
+from config import DevelopmentConfig
+
+# As extensões são inicializadas aqui, fora da função, para serem globais.
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 jwt = JWTManager()
 
-def admin_required():
-    def wrapper(fn):
-        @wraps(fn)
-        @jwt_required()
-        def decorator(*args, **kwargs):
-            claims = get_jwt()
-            if claims.get("role") == "admin":
-                return fn(*args, **kwargs)
-            else:
-                return jsonify(msg="Acesso restrito a administradores!"), 403
-        return decorator
-    return wrapper
-
+# --- Modelos do Banco de Dados ---
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -43,26 +37,35 @@ class RegistroPonto(db.Model):
     tipo_registro = db.Column(db.String(20), nullable=False)
     justificativa = db.Column(db.Text, nullable=True)
 
-'''def create_app():
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 
-    db.init_app(app)
-    bcrypt.init_app(app)
-    jwt.init_app(app)'''
+# --- Decorador de Admin ---
+def admin_required():
+    def wrapper(fn):
+        @wraps(fn)
+        @jwt_required()
+        def decorator(*args, **kwargs):
+            claims = get_jwt()
+            if claims.get("role") == "admin":
+                return fn(*args, **kwargs)
+            else:
+                return jsonify(msg="Acesso restrito a administradores!"), 403
+        return decorator
+    return wrapper
 
+
+# --- Função "Fábrica" que Cria a Aplicação ---
 def create_app(config_class=DevelopmentConfig):
     app = Flask(__name__)
-    # Carrega a configuração a partir do objeto passado como parâmetro
+    # Carrega a configuração a partir do objeto
     app.config.from_object(config_class)
 
+    # Vincula as extensões à aplicação
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
 
-    # --- ROTAS DE FUNCIONÁRIO ---
+    # --- ROTAS DA API ---
+    
     @app.route('/api/login', methods=['POST'])
     def login():
         username = request.json.get('username', None)
@@ -73,6 +76,19 @@ def create_app(config_class=DevelopmentConfig):
             access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
             return jsonify(access_token=access_token, role=user.role)
         return jsonify({"msg": "Usuário ou senha inválidos"}), 401
+
+    @app.route('/api/ponto/registrar', methods=['POST'])
+    @jwt_required()
+    def registrar_ponto():
+        tipo = request.json.get('tipo', None)
+        tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
+        if not tipo or tipo not in tipos_validos:
+            return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
+        current_user_id = get_jwt_identity()
+        novo_registro = RegistroPonto(usuario_id=int(current_user_id), tipo_registro=tipo)
+        db.session.add(novo_registro)
+        db.session.commit()
+        return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
     
     @app.route('/api/me/hoje', methods=['GET'])
     @jwt_required()
@@ -84,39 +100,18 @@ def create_app(config_class=DevelopmentConfig):
         tipos_registrados = [r.tipo_registro for r in registros_hoje]
         user_data = { "id": user.id, "nome_completo": user.nome_completo, "registros_hoje": tipos_registrados }
         return jsonify(user_data)
-        
-    @app.route('/api/ponto/registrar', methods=['POST'])
-    @jwt_required()
-    def registrar_ponto():
-        tipo = request.json.get('tipo', None)
-        tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
-        if not tipo or tipo not in tipos_validos: return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
-        current_user_id = get_jwt_identity()
-        novo_registro = RegistroPonto(usuario_id=int(current_user_id), tipo_registro=tipo)
-        db.session.add(novo_registro)
-        db.session.commit()
-        return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
-    
+
     @app.route('/api/me/registros', methods=['GET'])
     @jwt_required()
     def get_my_records():
         current_user_id = get_jwt_identity()
         mes = request.args.get('mes', type=int)
         ano = request.args.get('ano', type=int)
-
-        if not mes or not ano:
-            return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
-
-        query = RegistroPonto.query.filter_by(usuario_id=int(current_user_id)).filter(
-            extract('month', RegistroPonto.timestamp) == mes,
-            extract('year', RegistroPonto.timestamp) == ano
-        ).order_by(RegistroPonto.timestamp.asc())
-        
+        if not mes or not ano: return jsonify({"msg": "Parâmetros 'ano' e 'mes' são obrigatórios."}), 400
+        query = RegistroPonto.query.filter_by(usuario_id=int(current_user_id)).filter(extract('month', RegistroPonto.timestamp) == mes, extract('year', RegistroPonto.timestamp) == ano).order_by(RegistroPonto.timestamp.asc())
         registros = query.all()
         return jsonify([{"id": r.id, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro} for r in registros])
-
-
-    # --- ROTAS DE ADMINISTRAÇÃO ---
+    
     @app.route('/api/admin/usuarios', methods=['GET', 'POST'])
     @admin_required()
     def gerenciar_usuarios():
@@ -125,14 +120,16 @@ def create_app(config_class=DevelopmentConfig):
             return jsonify([{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios])
         if request.method == 'POST':
             dados = request.json
-            if not all([dados.get('username'), dados.get('password'), dados.get('nome_completo')]): return jsonify({"msg": "Dados incompletos"}), 400
-            if Usuario.query.filter_by(username=dados['username']).first(): return jsonify({"msg": "Username já existe"}), 409
+            if not all([dados.get('username'), dados.get('password'), dados.get('nome_completo')]):
+                return jsonify({"msg": "Dados incompletos"}), 400
+            if Usuario.query.filter_by(username=dados['username']).first():
+                return jsonify({"msg": "Username já existe"}), 409
             hashed_password = bcrypt.generate_password_hash(dados['password']).decode('utf-8')
             novo_usuario = Usuario(username=dados['username'], password_hash=hashed_password, nome_completo=dados['nome_completo'], role=dados.get('role', 'funcionario'))
             db.session.add(novo_usuario)
             db.session.commit()
             return jsonify({"msg": "Usuário criado com sucesso!"}), 201
-
+    
     @app.route('/api/admin/usuarios/<int:usuario_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_usuario_especifico(usuario_id):
@@ -197,7 +194,7 @@ def create_app(config_class=DevelopmentConfig):
             db.session.delete(registro)
             db.session.commit()
             return jsonify({"msg": "Registro deletado com sucesso!"})
-    
+
     @app.route('/api/admin/relatorio', methods=['GET'])
     @admin_required()
     def gerar_relatorio():
@@ -221,6 +218,7 @@ def create_app(config_class=DevelopmentConfig):
 
     return app
 
+# --- Bloco de Execução Principal ---
 if __name__ == '__main__':
     app = create_app()
     app.run(host='0.0.0.0', port=5001)
