@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity, get_jwt
-from datetime import datetime, date, timezone, timedelta # Importa timezone e timedelta
+from datetime import datetime, date, timezone, timedelta
 from functools import wraps
 from sqlalchemy import extract
 
@@ -13,7 +13,6 @@ db = SQLAlchemy()
 bcrypt = Bcrypt()
 jwt = JWTManager()
 
-# Define nosso fuso horário de -3 horas
 BR_TIMEZONE = timezone(timedelta(hours=-3))
 
 def admin_required():
@@ -42,7 +41,7 @@ class RegistroPonto(db.Model):
     __tablename__ = 'registros_ponto'
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False) # Removemos o default para definir na rota
+    timestamp = db.Column(db.DateTime, nullable=False)
     tipo_registro = db.Column(db.String(20), nullable=False)
     justificativa = db.Column(db.Text, nullable=True)
 
@@ -56,9 +55,8 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
 
-    @app.route('/api/login', methods=['POST'])
+    @app.route('/login', methods=['POST'])
     def login():
-        # ... (código inalterado) ...
         username = request.json.get('username', None)
         password = request.json.get('password', None)
         user = Usuario.query.filter_by(username=username).first()
@@ -68,10 +66,9 @@ def create_app():
             return jsonify(access_token=access_token, role=user.role)
         return jsonify({"msg": "Usuário ou senha inválidos"}), 401
     
-    @app.route('/api/me/hoje', methods=['GET'])
+    @app.route('/me/hoje', methods=['GET'])
     @jwt_required()
     def get_user_and_today_records():
-        # ... (código inalterado) ...
         current_user_id = get_jwt_identity()
         user = Usuario.query.get(int(current_user_id))
         today_start = datetime.combine(date.today(), datetime.min.time())
@@ -80,14 +77,13 @@ def create_app():
         user_data = { "id": user.id, "nome_completo": user.nome_completo, "registros_hoje": tipos_registrados }
         return jsonify(user_data)
         
-    @app.route('/api/ponto/registrar', methods=['POST'])
+    @app.route('/ponto/registrar', methods=['POST'])
     @jwt_required()
     def registrar_ponto():
         tipo = request.json.get('tipo', None)
         tipos_validos = ['entrada', 'saida_almoco', 'volta_almoco', 'saida']
         if not tipo or tipo not in tipos_validos: return jsonify({"msg": "Tipo de registro inválido ou ausente"}), 400
         current_user_id = get_jwt_identity()
-        # AJUSTE: O timestamp agora é gerado com o fuso horário correto
         novo_registro = RegistroPonto(
             usuario_id=int(current_user_id),
             tipo_registro=tipo,
@@ -97,7 +93,7 @@ def create_app():
         db.session.commit()
         return jsonify({"msg": f"Ponto de '{tipo}' registrado com sucesso!"}), 201
     
-    @app.route('/api/me/registros', methods=['GET'])
+    @app.route('/me/registros', methods=['GET'])
     @jwt_required()
     def get_my_records():
         current_user_id = get_jwt_identity()
@@ -113,10 +109,9 @@ def create_app():
         return jsonify([{"id": r.id, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro} for r in registros])
 
     # --- ROTAS DE ADMINISTRAÇÃO ---
-    @app.route('/api/admin/usuarios', methods=['GET', 'POST'])
+    @app.route('/admin/usuarios', methods=['GET', 'POST'])
     @admin_required()
     def gerenciar_usuarios():
-        # ... (código inalterado) ...
         if request.method == 'GET':
             usuarios = Usuario.query.order_by(Usuario.nome_completo).all()
             return jsonify([{"id": u.id, "nome_completo": u.nome_completo, "username": u.username, "role": u.role} for u in usuarios])
@@ -130,10 +125,9 @@ def create_app():
             db.session.commit()
             return jsonify({"msg": "Usuário criado com sucesso!"}), 201
 
-    @app.route('/api/admin/usuarios/<int:usuario_id>', methods=['PUT', 'DELETE'])
+    @app.route('/admin/usuarios/<int:usuario_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_usuario_especifico(usuario_id):
-        # ... (código inalterado) ...
         user = Usuario.query.get_or_404(usuario_id)
         if request.method == 'PUT':
             dados = request.json
@@ -149,11 +143,10 @@ def create_app():
             db.session.commit()
             return jsonify({"msg": "Usuário deletado com sucesso!"})
 
-    @app.route('/api/admin/registros', methods=['GET', 'POST'])
+    @app.route('/admin/registros', methods=['GET', 'POST'])
     @admin_required()
     def gerenciar_registros():
         if request.method == 'GET':
-            # ... (código inalterado) ...
             usuario_id = request.args.get('usuario_id', type=int)
             mes = request.args.get('mes', type=int)
             ano = request.args.get('ano', type=int)
@@ -165,7 +158,6 @@ def create_app():
             if dia: query = query.filter(extract('day', RegistroPonto.timestamp) == dia)
             registros = query.all()
             return jsonify([{"id": r.id, "usuario_id": r.usuario_id, "nome_usuario": r.usuario.nome_completo, "timestamp": r.timestamp.isoformat(), "tipo_registro": r.tipo_registro, "justificativa": r.justificativa} for r in registros])
-
         if request.method == 'POST':
             dados = request.json
             usuario_id = dados.get('usuario_id')
@@ -176,17 +168,15 @@ def create_app():
             for tipo, hora_str in registros_ponto.items():
                 if hora_str:
                     hora, minuto = map(int, hora_str.split(':'))
-                    # AJUSTE: O timestamp manual também é criado com o fuso horário correto
                     timestamp_completo = data_base.replace(hour=hora, minute=minuto, tzinfo=BR_TIMEZONE)
                     novo_registro = RegistroPonto(usuario_id=usuario_id, tipo_registro=tipo, timestamp=timestamp_completo, justificativa="Lançamento Manual")
                     db.session.add(novo_registro)
             db.session.commit()
             return jsonify({"msg": "Registros manuais inseridos com sucesso!"}), 201
 
-    @app.route('/api/admin/registros/<int:registro_id>', methods=['PUT', 'DELETE'])
+    @app.route('/admin/registros/<int:registro_id>', methods=['PUT', 'DELETE'])
     @admin_required()
     def gerenciar_registro_especifico(registro_id):
-        # ... (código inalterado) ...
         registro = RegistroPonto.query.get_or_404(registro_id)
         if request.method == 'PUT':
             dados = request.json
@@ -200,10 +190,9 @@ def create_app():
             db.session.commit()
             return jsonify({"msg": "Registro deletado com sucesso!"})
     
-    @app.route('/api/admin/relatorio', methods=['GET'])
+    @app.route('/admin/relatorio', methods=['GET'])
     @admin_required()
     def gerar_relatorio():
-        # ... (código inalterado) ...
         ano = request.args.get('ano', type=int)
         mes = request.args.get('mes', type=int)
         usuario_id = request.args.get('usuario_id', type=int)
