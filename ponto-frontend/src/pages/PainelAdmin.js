@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
-// Configuração do Axios para enviar o token automaticamente
+// ... (código axios e o resto do componente permanecem iguais)
 const api = axios.create();
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('user_token');
@@ -17,8 +17,6 @@ const PainelAdmin = () => {
     const navigate = useNavigate();
     const [usuarios, setUsuarios] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Estados para o formulário de novo usuário
     const [nomeCompleto, setNomeCompleto] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -35,7 +33,6 @@ const PainelAdmin = () => {
         }
     };
 
-    // Busca os usuários quando o componente é montado
     useEffect(() => {
         fetchUsuarios();
     }, []);
@@ -56,7 +53,6 @@ const PainelAdmin = () => {
                 role
             });
             Swal.fire('Sucesso!', response.data.msg, 'success');
-            // Limpa o formulário e atualiza a lista de usuários
             setNomeCompleto('');
             setUsername('');
             setPassword('');
@@ -68,15 +64,14 @@ const PainelAdmin = () => {
     };
 
     return (
-        <div className="App">
+        <div className="App"> {/* Adicionada a classe App para herdar o fundo */}
             <div className="admin-container">
                 <header className="dashboard-header">
                     <h2>Painel do Administrador</h2>
                     <button onClick={handleLogout} className="logout-button">Sair</button>
                 </header>
-
+                {/* ... (resto do JSX do admin) ... */}
                 <div className="admin-content">
-                    {/* Seção para Criar Novo Usuário */}
                     <div className="form-section">
                         <h3>Criar Novo Usuário</h3>
                         <form onSubmit={handleCreateUser} className="user-form">
@@ -90,8 +85,6 @@ const PainelAdmin = () => {
                             <button type="submit">Criar Usuário</button>
                         </form>
                     </div>
-
-                    {/* Seção para Listar Usuários */}
                     <div className="list-section">
                         <h3>Usuários Cadastrados</h3>
                         {isLoading ? <p>Carregando usuários...</p> : (

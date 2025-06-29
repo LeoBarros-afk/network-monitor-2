@@ -5,7 +5,19 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f2f5;
+  background-color: #f4f2f7; /* Um fundo roxo bem claro, quase branco */
+}
+
+/* Define as variáveis de cor do nosso tema */
+:root {
+  --primary-purple: #6D28D9;
+  --primary-purple-hover: #5B21B6;
+  --secondary-gray: #4B5563;
+  --secondary-gray-hover: #374151;
+  --tag-admin: #EF4444;
+  --tag-funcionario: #6B7280;
+  --success-green: #10B981;
+  --warn-orange: #F59E0B;
 }
 
 .App {
@@ -19,12 +31,12 @@ body {
 
 /* --- Estilos Gerais --- */
 .login-container, .dashboard-container, .admin-container {
-  padding: 2rem;
+  padding: 2.5rem;
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
   text-align: center;
 }
 
@@ -32,83 +44,92 @@ body {
 .admin-container { max-width: 900px; }
 
 
-h1, h2, h3 { color: #1c1e21; }
-h1 { margin-bottom: 1.5rem; }
-h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+h1, h2, h3 { color: #111827; }
+h1 { margin-bottom: 2rem; }
+h3 { margin-top: 0; border-bottom: 1px solid #E5E7EB; padding-bottom: 0.75rem; font-size: 1.25rem; }
 
 
 /* --- Formulários --- */
 .form-group { margin-bottom: 1rem; text-align: left; }
-.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #606770; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--secondary-gray); }
 .form-group input, input[type="text"], input[type="password"], select {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.8rem 1rem;
   font-size: 1rem;
-  border: 1px solid #dddfe2;
-  border-radius: 6px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
   box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input:focus, select:focus {
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.2);
+  outline: none;
 }
 
 /* --- Botões --- */
 button {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.8rem;
   font-size: 1.1rem;
   font-weight: bold;
   color: white;
-  background-color: #1877f2;
+  background-color: var(--primary-purple);
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
-button:hover:not(:disabled) { background-color: #166fe5; }
-.logout-button { width: auto; padding: 0.5rem 1rem; font-size: 0.9rem; background-color: #606770; }
-.logout-button:hover { background-color: #4b5158; }
+button:hover:not(:disabled) { background-color: var(--primary-purple-hover); }
 
+.logout-button { width: auto; padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: var(--secondary-gray); }
+.logout-button:hover { background-color: var(--secondary-gray-hover); }
 
-/* --- Painel Admin --- */
-.admin-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  text-align: left;
-}
-.user-form input, .user-form select { margin-bottom: 1rem; }
-.user-list { list-style: none; padding: 0; margin: 0; }
-.user-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  border-bottom: 1px solid #eee;
-}
-.user-list li:last-child { border-bottom: none; }
-.role-tag {
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: white;
-}
-.role-tag.admin { background-color: #fa383e; }
-.role-tag.funcionario { background-color: #606770; }
+/* --- Painel --- */
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; padding-bottom: 1rem; margin-bottom: 2rem; }
+.dashboard-header h2 { margin: 0; font-size: 1.5rem; }
+.current-date { margin: 0; font-size: 0.9rem; color: var(--secondary-gray); }
 
-
-/* --- Media Query para Telas Pequenas --- */
-@media (max-width: 768px) {
-    .admin-content {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* --- Estilos antigos que ainda são usados --- */
-.message { margin-top: 1rem; font-size: 0.9rem; color: #fa383e; }
-.dashboard-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dddfe2; padding-bottom: 1rem; margin-bottom: 2rem; }
-.dashboard-header h2 { margin: 0; font-size: 1.2rem; }
 .actions-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .action-button { padding: 1.5rem; font-size: 1.1rem; display: flex; justify-content: center; align-items: center; height: 80px; }
-.action-button:disabled { opacity: 0.6; cursor: not-allowed; }
-.action-button.entrada { background-color: #42b72a; }
-.action-button.saida { background-color: #fa383e; }
-.action-button.almoco { background-color: #f5a623; }
+.action-button:disabled { opacity: 0.5; cursor: not-allowed; background-color: var(--success-green) !important; }
+
+.action-button.entrada { background-color: #2563EB; }
+.action-button.entrada:hover:not(:disabled) { background-color: #1D4ED8; }
+.action-button.saida { background-color: #DC2626; }
+.action-button.saida:hover:not(:disabled) { background-color: #B91C1C; }
+.action-button.almoco { background-color: #D97706; }
+.action-button.almoco:hover:not(:disabled) { background-color: #B45309; }
+
+/* --- Outras Ações --- */
+.extra-actions {
+  margin-top: 2rem;
+  border-top: 1px solid #E5E7EB;
+  padding-top: 1.5rem;
+}
+.extra-button {
+  background-color: #fff;
+  color: var(--primary-purple);
+  border: 1px solid var(--primary-purple);
+  width: auto;
+  padding: 0.75rem 1.5rem;
+  display: inline-flex;
+  align-items: center;
+}
+.extra-button:hover {
+  background-color: #f9fafb;
+}
+
+/* --- Painel Admin --- */
+.admin-content { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; text-align: left; }
+.user-form input, .user-form select { margin-bottom: 1rem; }
+.user-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
+.user-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #E5E7EB; }
+.user-list li:last-child { border-bottom: none; }
+.role-tag { padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; color: white; }
+.role-tag.admin { background-color: var(--tag-admin); }
+.role-tag.funcionario { background-color: var(--tag-funcionario); }
+
+@media (max-width: 768px) {
+    .admin-content { grid-template-columns: 1fr; }
+}

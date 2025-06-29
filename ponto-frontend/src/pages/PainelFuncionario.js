@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { FaCheckCircle } from 'react-icons/fa';
+import { FaCheckCircle, FaCalendarAlt } from 'react-icons/fa'; // Importa o ícone de calendário
 import { useNavigate } from 'react-router-dom';
 
+// Configuração do Axios para enviar o token automaticamente
 const api = axios.create();
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('user_token');
@@ -13,10 +14,21 @@ api.interceptors.request.use((config) => {
   return config;
 }, (error) => Promise.reject(error));
 
+
 const PainelFuncionario = () => {
   const [userData, setUserData] = useState(null);
   const [registrosDoDia, setRegistrosDoDia] = useState([]);
   const navigate = useNavigate();
+
+  // Função para formatar a data atual
+  const getCurrentDate = () => {
+    return new Date().toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('user_token');
@@ -42,13 +54,26 @@ const PainelFuncionario = () => {
     try {
       const response = await api.post('/api/ponto/registrar', { tipo });
       setRegistrosDoDia([...registrosDoDia, tipo]);
-      Swal.fire({
-        title: 'Sucesso!',
-        text: response.data.msg,
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
-      });
+
+      // Verifica se é o último ponto do dia para a mensagem especial
+      if (tipo === 'saida') {
+        Swal.fire({
+          title: 'Até logo!',
+          text: 'Obrigado por mais um dia de trabalho. Seu ponto foi encerrado!',
+          icon: 'success',
+          timer: 2500, // Um pouco mais de tempo para a mensagem de despedida
+          showConfirmButton: false,
+        });
+      } else {
+        Swal.fire({
+          title: 'Sucesso!',
+          text: response.data.msg,
+          icon: 'success',
+          timer: 1500, // Animação mais rápida
+          showConfirmButton: false,
+        });
+      }
+
     } catch (error) {
       Swal.fire({
         title: 'Erro!',
@@ -72,7 +97,10 @@ const PainelFuncionario = () => {
     <div className="App">
       <div className="dashboard-container">
         <header className="dashboard-header">
-          <h2>Bem-vindo(a), {userData?.nome_completo || '...'}!</h2>
+          <div>
+            <h2>Bem-vindo(a), {userData?.nome_completo || '...'}!</h2>
+            <p className="current-date">{getCurrentDate()}</p>
+          </div>
           <button onClick={handleLogout} className="logout-button">Sair</button>
         </header>
         <div className="actions-container">
@@ -86,6 +114,13 @@ const PainelFuncionario = () => {
               {registrosDoDia.includes(btn.tipo) ? <FaCheckCircle size={24} /> : btn.texto}
             </button>
           ))}
+        </div>
+        {/* Futura Tabela de Registros */}
+        <div className="extra-actions">
+          <button className="extra-button">
+            <FaCalendarAlt style={{ marginRight: '8px' }} />
+            Meus Registros do Mês
+          </button>
         </div>
       </div>
     </div>
