@@ -83,6 +83,26 @@ services:
       - ponto-api
     restart: unless-stopped
 
+    # NOVO SERVIÇO PARA BACKUPS
+  postgres-backup:
+    image: postgres:13-alpine
+    container_name: postgres-backup
+    volumes:
+      # Mapeia a pasta de backups do servidor para dentro do contêiner
+      - ./backups:/backups
+    depends_on:
+      - postgres-db
+    environment:
+      # Passa as mesmas credenciais para o script de backup
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+      - POSTGRES_DB=${POSTGRES_DB}
+    # Este é o comando que agenda a tarefa
+    # "0 2 * * *" significa "às 2 da manhã, todos os dias"
+    command: >
+      sh -c "echo '0 2 * * * /backups/backup.sh >> /backups/cron.log 2>&1' | crontab - && crond -f -L /dev/stdout"
+    restart: unless-stopped
+
 volumes:
   influxdb_data:
   grafana_data:
