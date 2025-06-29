@@ -78,10 +78,12 @@ button {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
 }
 button:hover:not(:disabled) { background-color: var(--primary-purple-hover); }
-
 .logout-button { width: auto; padding: 0.6rem 1.2rem; font-size: 0.9rem; background-color: var(--secondary-gray); }
 .logout-button:hover { background-color: var(--secondary-gray-hover); }
 
@@ -129,7 +131,30 @@ button:hover:not(:disabled) { background-color: var(--primary-purple-hover); }
 .role-tag { padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; color: white; }
 .role-tag.admin { background-color: var(--tag-admin); }
 .role-tag.funcionario { background-color: var(--tag-funcionario); }
-
+.user-form input, .user-form select { margin-bottom: 1rem; }
 @media (max-width: 768px) {
     .admin-content { grid-template-columns: 1fr; }
 }
+
+/* NOVO: Estilos para os botões do formulário de criação */
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.cancel-button {
+  background-color: var(--secondary-gray);
+}
+.cancel-button:hover {
+  background-color: var(--secondary-gray-hover);
+}
+
+.create-user-button {
+  background-color: var(--success-green);
+}
+.create-user-button:hover {
+  background-color: #059669; /* Um verde um pouco mais escuro */
+}
+
