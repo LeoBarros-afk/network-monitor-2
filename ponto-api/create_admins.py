@@ -10,7 +10,7 @@ admins = [
     },
     {
         "nome_completo": "Dorian James",
-        "username": "DorianAdmin",
+        "username": "dorianAdmin",
         "password": "admin@q@"
     },
     {
